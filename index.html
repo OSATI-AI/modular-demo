@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Player Demo</title>
+</head>
+<body>
+  <h1>Task Player Demo</h1>
+  <div id="task-container"></div>
+  <button id="check-btn">Check</button>
+  <p id="typing-indicator"></p>
+  <p id="evaluation-result"></p>
+
+  <!-- Importing the YAML parser library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.14.0/js-yaml.min.js"></script>
+  <!-- Importing the task player script -->
+  <script type="module">
+    import TaskPlayer from './task_player.js';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const player = new TaskPlayer('task-container');
+      player.openTask('task_001');
+
+      document.getElementById('check-btn').addEventListener('click', () => {
+        player.sendEvent('evaluate');
+      });
+
+      document.addEventListener('input', (event) => {
+        const typingIndicator = document.getElementById('typing-indicator');
+        typingIndicator.innerText = 'typing...';
+        setTimeout(() => {
+          typingIndicator.innerText = '';
+        }, 1000);
+      });
+
+      document.addEventListener('evaluate', (event) => {
+        const evaluationResult = document.getElementById('evaluation-result');
+        evaluationResult.innerText = `Evaluation Result: ${JSON.stringify(event.detail)}`;
+      });
+    });
+  </script>
+</body>
+</html>

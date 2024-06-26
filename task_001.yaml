@@ -1,0 +1,15 @@
+task_id: "task_001"
+template_id: "template_001"
+title: "Multiplication Task"
+description: "Multiply two random numbers."
+script: |
+  const num1 = Math.floor(Math.random() * 10);
+  const num2 = Math.floor(Math.random() * 10);
+  document.getElementById('question').innerText = `Multiply: ${num1} x ${num2} = `;
+  
+  playerApi.receiveEvent('evaluate', function() {
+    const userInput = document.getElementById('answer').value;
+    const result = num1 * num2;
+    const isCorrect = parseInt(userInput) === result;
+    return { userInput, result, isCorrect };
+  });

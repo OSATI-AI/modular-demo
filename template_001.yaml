@@ -1,0 +1,12 @@
+template_id: "template_001"
+title: "Simple Input Template"
+description: "A template with a question and a single input field."
+html: |
+  <div class="question-container">
+    <p id="question"></p>
+    <input type="text" id="answer" />
+  </div>
+scripts: |
+  document.getElementById('answer').addEventListener('input', function(event) {
+    playerApi.sendEvent('input', event.target.value);
+  });
