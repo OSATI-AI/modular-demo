@@ -2,7 +2,7 @@ task_id: "task_003"
 template_id: "template_figure_question_answer"
 title: "Linear Function Gradient Task"
 description: "Determine the gradient of a linear function."
-topic_id: 3
+topic_id: 1
 events:
   send: ["evaluationResult"]
   receive: ["evaluate", "refresh"]

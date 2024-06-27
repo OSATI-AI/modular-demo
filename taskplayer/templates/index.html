@@ -6,6 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Player Demo</title>
     <link rel="stylesheet" href="{% static 'styles/global.css' %}">
+
+    <script>
+        function toggleVisibility(element) {
+            var nextElement = element.nextElementSibling;
+            var arrow = element.querySelector('.arrow');
+
+            if (nextElement.style.display === "none") {
+                nextElement.style.display = "block";
+                element.classList.add('expanded');
+                element.classList.remove('collapsed');
+            } else {
+                nextElement.style.display = "none";
+                element.classList.remove('expanded');
+                element.classList.add('collapsed');
+            }
+        }
+    </script>
+
+
     <style>
         #task-container {
           border: 5px solid green;
@@ -14,15 +33,53 @@
       </style>
 </head>
 <body>
-    <h1>Task Player Demo</h1>
-    <button id="load-task-001">Load Task 001</button>
-    <button id="load-task-002">Load Task 002</button>
-    <button id="load-task-003">Load Task 003</button>
-    <div id="task-container"></div>
-    <button id="check-btn">Check</button>
-    <button id="refresh-btn">Refresh</button>
-    <p id="typing-indicator"></p>
-    <p id="evaluation-result"></p>
+    <div class="sidebar">
+        <h3>Sidebar</h3>
+        <!-- Sidebar items will be added here by the Django view -->
+        {% for level, key_ideas in structured_tasks.items %}
+            <div class="level">
+                <h4 class="expandable" onclick="toggleVisibility(this)">
+                    <span class="arrow">▶</span> {{ level }}
+                </h4>
+                <div class="key-ideas" style="display: none;">
+                    {% for key_idea, topics in key_ideas.items %}
+                        <div class="key-idea">
+                            <h5 class="expandable" onclick="toggleVisibility(this)">
+                                <span class="arrow">▶</span> {{ key_idea }}
+                            </h5>
+                            <div class="topics" style="display: none;">
+                                {% for topic, tasks in topics.items %}
+                                    <div class="topic">
+                                        <h6 class="expandable" onclick="toggleVisibility(this)">
+                                            <span class="arrow">▶</span> {{ topic }}
+                                        </h6>
+                                        <div class="tasks" style="display: none;">
+                                            {% for title, filename in tasks %}
+                                                <button class="sidebar-item"
+                                                    onclick="loadTask('{{filename}}')"
+                                                >{{ title }}</button>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="content">
+        <h3>Content</h3>
+        <div>
+        <div id="task-container"></div>
+        <p id="typing-indicator"></p>
+        <p id="evaluation-result"></p>
+        <button id="check-btn">Check</button>
+        <button id="refresh-btn">Refresh</button>
+        </div>
+    </div>
 
     <!-- Importing the YAML parser library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.14.0/js-yaml.min.js"></script>
@@ -35,20 +92,7 @@
         let player_config ={externalScriptsPath: '{% static "scripts/" %}'}
         const player = new TaskPlayer('task-container', player_config);
 
-        document.getElementById('load-task-001').addEventListener('click', () => {
-            loadTask('task_001');
-        });
-
-        document.getElementById('load-task-002').addEventListener('click', () => {
-            loadTask('task_002');
-        });
-
-        document.getElementById('load-task-003').addEventListener('click', () => {
-            loadTask('task_003');
-        });
-
-
-        function loadTask(taskId) {
+        window.loadTask = function(taskId) {
             fetch(`/load_task/?task_id=${taskId}`)
                 .then(response => response.json())
                 .then(data => {

@@ -2,7 +2,7 @@ task_id: "task_multiple_choice"
 template_id: "template_multiple_choice"
 title: "Multiple Choice Question"
 description: "Select the correct answer."
-topic_id: 2
+topic_id: 1
 events:
   send: ["evaluationResult"]
   receive: ["evaluate", "refresh"]

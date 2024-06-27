@@ -25,7 +25,6 @@ script: |
   });
 
   playerApi.receiveEvent('refresh', function() {
-    imagePlaceholder.innerHTML = '';
     answerElement.value = '';
     exercise = generateExercise();
   });

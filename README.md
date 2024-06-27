@@ -1,13 +1,15 @@
 # Modular Task Player Framework
+
 ## Overview
+
 The Task Player Framework allows you to create and render arbitrary learning tasks within a web application. The framework consists of three main components:
 
 1. **Templates**: Define the structure and layout of different types of tasks.
 2. **Tasks**: Provide the content and logic for specific tasks, using templates.
 3. **Player**: Renders tasks using templates and handles communication between the tasks and the parent application via an event system.
 
-
 ## Templates
+
 Templates define the overall layout and behavior of tasks. They are responsible for creating the structure and returning references to the elements that the tasks will fill with content.
 
 ### Example:
@@ -53,11 +55,12 @@ scripts: |
       return createLayout(details);
     }
   };
-```
+  ```
 
 ## Tasks
 Tasks use templates and fill them with specific content and logic. They define the content to be displayed and handle the task-specific logic, such as evaluating user input.
 
+### Example
 ```yaml
 task_id: "task_example"
 template_id: "template_example"
@@ -102,8 +105,27 @@ script: |
       isCorrect
     });
   });
-
 ```
+
+## External scripts
+Tasks and templates can have a **external_scripts** field that can contain a list of filenames. The scripts are loaded dynamically when this task is loaded and all functions inside this file can then be called from the template or task script. 
+
+### Example
+```yaml
+task_id: "task_003"
+template_id: "template_figure_question_answer"
+title: "Linear Function Gradient Task"
+description: "Determine the gradient of a linear function."
+topic_id: 1
+events:
+  send: ["evaluationResult"]
+  receive: ["evaluate", "refresh"]
+external_scripts:
+  - "figure.js"
+...
+```
+
+
 
 ## Communication
 The framework uses an event system to facilitate communication between the parent application and the tasks/templates.
@@ -119,7 +141,6 @@ Tasks and templates specify the events they can send and receive in their YAML d
 
 ## Integration
 To integrate the player into a web application, follow these steps:
-
 ```html
 <!-- Importing the YAML parser library -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.14.0/js-yaml.min.js"></script>
@@ -159,8 +180,17 @@ To integrate the player into a web application, follow these steps:
 </script>
 ```
 
-## Usage
-Navigate to your project directory and run the following command:
+## Django Example
+The Django application is just an example to demonstrate how the task player can be integrated into any web application. The same principles can be applied to other frameworks or standalone applications.
+
+Here, the tasks and templates are loaded in the backend (since they probably would be stored in a databse) and send to the frontend via a http request. External scripts, Styling and the Task-Player itself are included in the frontend as static files. 
+
+### Start the app as local deployment:
+1. Install Django
 ```bash
-python -m http.server 8000
+  pip install django
+```
+2. Navigate to the project root directory and execute:
+```bash
+  python manage.py runserver
 ```

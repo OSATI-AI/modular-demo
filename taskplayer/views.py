@@ -56,17 +56,12 @@ def index(request):
     structured_tasks = structure_tasks(tasks, topics_lookup)
 
     print(structured_tasks)
-
-    # Render index.html and display the tasks in the sidebar
-    #return render(request, 'index.html', {'structured_tasks': structured_tasks})
-
-
-    return render(request, 'index.html')
+    return render(request, 'index.html', {'structured_tasks': structured_tasks})
 
 def load_task(request):
     task_id = request.GET.get('task_id')
     if task_id:
-        task_file = os.path.join(tasks_dir, f'{task_id}.yaml')
+        task_file = os.path.join(tasks_dir, f'{task_id}')
         with open(task_file, 'r') as file:
             task_yaml = yaml.safe_load(file)
 
