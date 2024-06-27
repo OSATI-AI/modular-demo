@@ -1,0 +1,43 @@
+template_id: "template_multiple_choice"
+title: "Multiple Choice Template"
+description: "A template for multiple choice questions."
+events:
+  send: ["choice_selected"]
+  receive: []
+html: |
+  <div class="question-container">
+    <p id="question"></p>
+    <div id="choices-container"></div>
+  </div>
+scripts: |
+  let selectedChoice = null;
+
+  function createLayout(details) {
+    const questionElement = document.getElementById('question');
+    const choicesContainer = document.getElementById('choices-container');
+    choicesContainer.innerHTML = '';
+    const choiceElements = [];
+    for (let i = 0; i < details.choices; i++) {
+      const choiceElement = document.createElement('div');
+      choiceElement.classList.add('choice');
+      choiceElement.addEventListener('click', () => selectChoice(choiceElement, i, details.choicesData[i]));
+      choicesContainer.appendChild(choiceElement);
+      choiceElements.push(choiceElement);
+    }
+    return { questionElement, choiceElements };
+  }
+
+  function selectChoice(choiceElement, id, content) {
+    if (selectedChoice) {
+      selectedChoice.classList.remove('selected');
+    }
+    choiceElement.classList.add('selected');
+    selectedChoice = choiceElement;
+    playerApi.sendEvent('choice_selected', { id, content });
+  }
+
+  playerApi.callTemplateScript = (method, details) => {
+    if (method === 'createLayout') {
+      return createLayout(details);
+    }
+  };

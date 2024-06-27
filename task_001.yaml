@@ -1,15 +1,21 @@
 task_id: "task_001"
-template_id: "template_001"
+template_id: "template_question_answer"
 title: "Multiplication Task"
 description: "Multiply two random numbers."
+events:
+  send: ["evaluationResult"]
+  receive: ["evaluate"]
 script: |
   const num1 = Math.floor(Math.random() * 10);
   const num2 = Math.floor(Math.random() * 10);
-  document.getElementById('question').innerText = `Multiply: ${num1} x ${num2} = `;
+
+  const { questionElement, answerElement } = playerApi.callTemplateScript('createLayout', {});
+
+  questionElement.innerText = `Multiply: ${num1} x ${num2} = `;
   
   playerApi.receiveEvent('evaluate', function() {
-    const userInput = document.getElementById('answer').value;
+    const userInput = answerElement.value;
     const result = num1 * num2;
     const isCorrect = parseInt(userInput) === result;
-    return { userInput, result, isCorrect };
+    playerApi.sendEvent('evaluationResult', { userInput, result, isCorrect });
   });

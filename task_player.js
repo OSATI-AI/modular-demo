@@ -1,17 +1,19 @@
-const EVENTS = {
-    INPUT: 'input',
-    EVALUATE: 'evaluate'
-  };
-  
   export default class TaskPlayer {
     constructor(containerId, config = {}) {
       this.container = document.getElementById(containerId);
       this.config = config;
       this.events = {};
+      this.templateApi = {};
       this.playerApi = {
         sendEvent: this.sendEvent.bind(this),
-        receiveEvent: this.receiveEvent.bind(this)
+        receiveEvent: this.receiveEvent.bind(this),
+        callTemplateScript: this.callTemplateScript.bind(this)
       };
+  
+      // Route events from the parent application to tasks/templates
+      document.addEventListener('parentEvent', (e) => {
+        this.routeEvent(e.detail.event, e.detail.data);
+      });
     }
   
     async fetchYaml(fileName) {
@@ -48,7 +50,7 @@ const EVENTS = {
         this.container.innerHTML = this.template.html;
         const playerApi = this.playerApi;
         const templateScript = new Function('playerApi', this.template.scripts);
-        templateScript(playerApi);
+        this.templateApi = templateScript(playerApi);
       } catch (error) {
         console.error('Error rendering template:', error);
       }
@@ -64,21 +66,27 @@ const EVENTS = {
       }
     }
   
-    sendEvent(event, data) {
-      if (event === EVENTS.EVALUATE) {
-        if (this.events.evaluate) {
-          const evaluationResult = this.events.evaluate();
-          const customEvent = new CustomEvent(event, { detail: evaluationResult });
-          document.dispatchEvent(customEvent);
-        }
+    callTemplateScript(method, details) {
+      if (this.templateApi[method]) {
+        return this.templateApi[method](details);
       } else {
-        const customEvent = new CustomEvent(event, { detail: data });
-        document.dispatchEvent(customEvent);
+        console.error(`Method ${method} not found in template API.`);
       }
+    }
+  
+    sendEvent(event, data) {
+      const customEvent = new CustomEvent(event, { detail: data });
+      document.dispatchEvent(customEvent);
     }
   
     receiveEvent(event, callback) {
       this.events[event] = callback;
+    }
+  
+    routeEvent(event, data) {
+      if (this.events[event]) {
+        this.events[event](data);
+      }
     }
   }
   

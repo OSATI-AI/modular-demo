@@ -4,6 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Task Player Demo</title>
+
+
+  <style>
+    .choice {
+      padding: 10px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      margin: 5px 0;
+    }
+    .choice.selected {
+      background-color: #d3d3d3;
+      border-color: #000;
+    }
+  </style>
+  
+
+
 </head>
 <body>
   <h1>Task Player Demo</h1>
@@ -17,15 +34,18 @@
   <!-- Importing the task player script -->
   <script type="module">
     import TaskPlayer from './task_player.js';
-
+  
     document.addEventListener('DOMContentLoaded', () => {
       const player = new TaskPlayer('task-container');
-      player.openTask('task_001');
-
+      player.openTask('task_002');
+  
       document.getElementById('check-btn').addEventListener('click', () => {
-        player.sendEvent('evaluate');
+        const customEvent = new CustomEvent('parentEvent', {
+          detail: { event: 'evaluate' }
+        });
+        document.dispatchEvent(customEvent);
       });
-
+  
       document.addEventListener('input', (event) => {
         const typingIndicator = document.getElementById('typing-indicator');
         typingIndicator.innerText = 'typing...';
@@ -33,12 +53,19 @@
           typingIndicator.innerText = '';
         }, 1000);
       });
-
-      document.addEventListener('evaluate', (event) => {
+  
+      document.addEventListener('choice_selected', (event) => {
+        const typingIndicator = document.getElementById('typing-indicator');
+        typingIndicator.innerText = `Selected Choice: ID - ${event.detail.id}, Content - ${event.detail.content}`;
+      });
+  
+      document.addEventListener('evaluationResult', (event) => {
         const evaluationResult = document.getElementById('evaluation-result');
         evaluationResult.innerText = `Evaluation Result: ${JSON.stringify(event.detail)}`;
       });
     });
   </script>
+  
+  
 </body>
 </html>

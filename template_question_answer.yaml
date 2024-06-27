@@ -1,0 +1,28 @@
+template_id: "template_question_answer"
+title: "Simple Input Template"
+description: "A template with a question and a single input field."
+events:
+  send: ["input"]
+  receive: []
+html: |
+  <div class="question-container">
+    <p id="question"></p>
+    <input type="text" id="answer" />
+  </div>
+scripts: |
+  function createLayout(details) {
+    const questionElement = document.getElementById('question');
+    const answerElement = document.getElementById('answer');
+    
+    answerElement.addEventListener('input', function(event) {
+      playerApi.sendEvent('input', event.target.value);
+    });
+    
+    return { questionElement, answerElement };
+  }
+
+  playerApi.callTemplateScript = (method, details) => {
+    if (method === 'createLayout') {
+      return createLayout(details);
+    }
+  };
