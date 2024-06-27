@@ -3,12 +3,28 @@ title: "Multiple Choice Template"
 description: "A template for multiple choice questions."
 events:
   send: ["choice_selected"]
-  receive: []
+  receive: ["refresh"]
 html: |
   <div class="question-container">
     <p id="question"></p>
     <div id="choices-container"></div>
   </div>
+styles: |
+  .choice {
+    padding: 10px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    margin: 5px 0;
+  }
+
+  .choice.selected {
+    background-color: #d3d3d3;
+    border-color: #000;
+  }
+
+  .choice:hover {
+    background-color: #f0f0f0;
+  }
 scripts: |
   let selectedChoice = null;
 
@@ -41,3 +57,7 @@ scripts: |
       return createLayout(details);
     }
   };
+
+  playerApi.receiveEvent('refresh', function() {
+    selectedChoice = null;
+  });

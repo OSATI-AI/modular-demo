@@ -1,0 +1,35 @@
+task_id: "task_003"
+template_id: "template_figure_question_answer"
+title: "Linear Function Gradient Task"
+description: "Determine the gradient of a linear function."
+topic_id: 3
+events:
+  send: ["evaluationResult"]
+  receive: ["evaluate", "refresh"]
+external_scripts:
+  - "figure.js"
+script: |
+  function generateExercise() {
+    let gradient;
+    do {
+      gradient = Math.floor(Math.random() * 11) - 5;
+    } while (gradient === 0);
+    questionElement.innerText = "What is the gradient of the linear function shown in the figure?";
+    plot_linear_function("image_placeholder", gradient, 0);
+    return { gradient };
+  }
+
+  const { questionElement, imagePlaceholder, answerElement } = playerApi.callTemplateScript('createLayout', {});
+  let exercise = generateExercise();
+
+  playerApi.receiveEvent('evaluate', function() {
+    const userInput = parseFloat(answerElement.value);
+    const isCorrect = userInput === exercise.gradient;
+    playerApi.sendEvent('evaluationResult', { userInput, result: exercise.gradient, isCorrect });
+  });
+
+  playerApi.receiveEvent('refresh', function() {
+    imagePlaceholder.innerHTML = '';
+    answerElement.value = '';
+    exercise = generateExercise();
+  });

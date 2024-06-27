@@ -1,0 +1,31 @@
+task_id: "task_001"
+template_id: "template_question_answer"
+title: "Multiplication Task"
+description: "Multiply two random numbers."
+topic_id: 1
+events:
+  send: ["evaluationResult"]
+  receive: ["evaluate", "refresh"]
+script: |
+  function generateExercise() {
+    const num1 = Math.floor(Math.random() * 10);
+    const num2 = Math.floor(Math.random() * 10);
+    questionElement.innerText = `Multiply: ${num1} x ${num2} = `;
+    return { num1, num2 };
+  }
+
+  const { questionElement, answerElement } = playerApi.callTemplateScript('createLayout', {});
+  let exercise = generateExercise();
+
+  playerApi.receiveEvent('evaluate', function() {
+    const userInput = answerElement.value;
+    const result = exercise.num1 * exercise.num2;
+    const isCorrect = parseInt(userInput) === result;
+    playerApi.sendEvent('evaluationResult', { userInput, result, isCorrect });
+  });
+
+  playerApi.receiveEvent('refresh', function() {
+    imagePlaceholder.innerHTML = '';
+    answerElement.value = '';
+    exercise = generateExercise();
+  });

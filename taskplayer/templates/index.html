@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Player Demo</title>
+    <link rel="stylesheet" href="{% static 'styles/global.css' %}">
+    <style>
+        #task-container {
+          border: 5px solid green;
+          padding: 10px;
+        }
+      </style>
+</head>
+<body>
+    <h1>Task Player Demo</h1>
+    <button id="load-task-001">Load Task 001</button>
+    <button id="load-task-002">Load Task 002</button>
+    <button id="load-task-003">Load Task 003</button>
+    <div id="task-container"></div>
+    <button id="check-btn">Check</button>
+    <button id="refresh-btn">Refresh</button>
+    <p id="typing-indicator"></p>
+    <p id="evaluation-result"></p>
+
+    <!-- Importing the YAML parser library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.14.0/js-yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <!-- Importing the task player script -->
+    <script src="{% static 'task_player.js' %}" type="module"></script>
+    <script type="module">
+        import TaskPlayer from '{% static "task_player.js" %}';
+
+        let player_config ={externalScriptsPath: '{% static "scripts/" %}'}
+        const player = new TaskPlayer('task-container', player_config);
+
+        document.getElementById('load-task-001').addEventListener('click', () => {
+            loadTask('task_001');
+        });
+
+        document.getElementById('load-task-002').addEventListener('click', () => {
+            loadTask('task_002');
+        });
+
+        document.getElementById('load-task-003').addEventListener('click', () => {
+            loadTask('task_003');
+        });
+
+
+        function loadTask(taskId) {
+            fetch(`/load_task/?task_id=${taskId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.task && data.template) {
+                        player.openTask(data.task, data.template);
+                    } else {
+                        console.error('Error loading task:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching task:', error);
+                });
+        }
+
+        document.getElementById('check-btn').addEventListener('click', () => {
+            const customEvent = new CustomEvent('parentEvent', {
+                detail: { event: 'evaluate' }
+            });
+            document.dispatchEvent(customEvent);
+        });
+
+        document.getElementById('refresh-btn').addEventListener('click', () => {
+            const customEvent = new CustomEvent('parentEvent', {
+                detail: { event: 'refresh' }
+            });
+            document.dispatchEvent(customEvent);
+            document.getElementById('evaluation-result').innerText = ""
+            document.getElementById('typing-indicator').innerText = ""
+        });
+
+        document.addEventListener('input', (event) => {
+            const typingIndicator = document.getElementById('typing-indicator');
+            typingIndicator.innerText = 'typing...';
+            setTimeout(() => {
+                typingIndicator.innerText = '';
+            }, 1000);
+        });
+
+        document.addEventListener('choice_selected', (event) => {
+            const typingIndicator = document.getElementById('typing-indicator');
+            typingIndicator.innerText = `Selected Choice: ID - ${event.detail.id}, Content - ${event.detail.content}`;
+        });
+
+        document.addEventListener('evaluationResult', (event) => {
+            const evaluationResult = document.getElementById('evaluation-result');
+            evaluationResult.innerText = `Evaluation Result: ${JSON.stringify(event.detail)}`;
+        });
+    </script>
+</body>
+</html>

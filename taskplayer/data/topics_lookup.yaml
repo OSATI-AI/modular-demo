@@ -1,0 +1,581 @@
+levels:
+  1: 
+    english: Class 5/6
+    german: Klasse 5/6
+  2: 
+    english: Class 7/8
+    german: Klasse 7/8
+  3: 
+    english: Class 9/10
+    german: Klasse 9/10
+  4: 
+    english: Class 11/12 (basic course)
+    german: Klasse 11/12 (Basisfach)
+  5: 
+    english: Class 11/12 (advanced course)
+    german: Klasse 11/12 (Leistungsfach)
+
+key_ideas:
+  1: 
+    english: Data and Chance
+    german: Daten und Zufall
+  2: 
+    english: Functional Relationships
+    german: Funktionaler Zusammenhang
+  3: 
+    english: Measurement
+    german: Messen
+  4: 
+    english: Space and Shape
+    german: Raum und Form
+  5: 
+    english: Number - Variable - Operation
+    german: Zahl - Variable - Operation
+
+topics:
+  1:
+    title:
+      english: Data collection and frequency tables
+      german: Datenerhebung und Häufigkeitstabellen
+    key_idea: 1
+    level: 1
+  2:
+    title:
+      english: Absolute and relative frequencies
+      german: Absolute und relative Häufigkeiten
+    key_idea: 1
+    level: 1
+  3:
+    title:
+      english: Graphical representations and measures
+      german: Graphische Darstellungen und Kenngrößen
+    key_idea: 1
+    level: 1
+  4:
+    title:
+      english: Statistical statements and evaluations
+      german: Statistische Aussagen und Auswertungen
+    key_idea: 1
+    level: 1
+  5:
+    title:
+      english: Number and size relationships
+      german: Zahlen- und Größenbeziehungen
+    key_idea: 2
+    level: 1
+  6:
+    title:
+      english: Coordinate system and functional relationships
+      german: Koordinatensystem und funktionale Zusammenhänge
+    key_idea: 2
+    level: 1
+  7:
+    title:
+      english: Proportionality and scales
+      german: Proportionalität und Maßstäbe
+    key_idea: 2
+    level: 1
+  8:
+    title:
+      english: Measurement processes and units
+      german: Messvorgänge und Einheiten
+    key_idea: 3
+    level: 1
+  9:
+    title:
+      english: Areas and volumes
+      german: Flächeninhalte und Volumina
+    key_idea: 3
+    level: 1
+  10:
+    title:
+      english: Perimeters and Pi
+      german: Umfänge und Pi
+    key_idea: 3
+    level: 1
+  11:
+    title:
+      english: Position relationships and angles
+      german: Lagebeziehungen und Winkel
+    key_idea: 4
+    level: 1
+  12:
+    title:
+      english: Symmetries and geometric shapes
+      german: Symmetrien und geometrische Formen
+    key_idea: 4
+    level: 1
+  13:
+    title:
+      english: Solids and drawing techniques
+      german: Körper und Zeichentechniken
+    key_idea: 4
+    level: 1
+  14:
+    title:
+      english: Decimal place value system
+      german: Dezimales Stellenwertsystem
+    key_idea: 5
+    level: 1
+  15:
+    title:
+      english: Natural and whole numbers
+      german: Natürliche und ganze Zahlen
+    key_idea: 5
+    level: 1
+  16:
+    title:
+      english: Fractions and decimals
+      german: Brüche und Dezimalzahlen
+    key_idea: 5
+    level: 1
+  17:
+    title:
+      english: Arithmetic operations and terms
+      german: Rechenoperationen und Terme
+    key_idea: 5
+    level: 1
+  18:
+    title:
+      english: Rounding and accuracy
+      german: Rundungen und Genauigkeit
+    key_idea: 5
+    level: 1
+  19:
+    title:
+      english: Median and data analysis
+      german: Median und Datenanalyse
+    key_idea: 1
+    level: 2
+  20:
+    title:
+      english: Probabilities and random experiments
+      german: Wahrscheinlichkeiten und Zufallsexperimente
+    key_idea: 1
+    level: 2
+  21:
+    title:
+      english: Tree diagrams and combinatorial considerations
+      german: Baumdiagramme und kombinatorische Überlegungen
+    key_idea: 1
+    level: 2
+  22:
+    title:
+      english: Tables, graphs and equations
+      german: Tabellen, Graphen und Gleichungen
+    key_idea: 2
+    level: 2
+  23:
+    title:
+      english: Linear and quadratic functions
+      german: Lineare und quadratische Funktionen
+    key_idea: 2
+    level: 2
+  24:
+    title:
+      english: Parabolas and change behavior
+      german: Parabeln und Änderungsverhalten
+    key_idea: 2
+    level: 2
+  25:
+    title:
+      english: Angles and triangles
+      german: Winkel und Dreiecke
+    key_idea: 4
+    level: 2
+  26:
+    title:
+      english: Geometric constructions and loci
+      german: Geometrische Konstruktionen und Ortslinien
+    key_idea: 4
+    level: 2
+  27:
+    title:
+      english: Similarity and distances
+      german: Ähnlichkeit und Streckenlängen
+    key_idea: 4
+    level: 2
+  28:
+    title:
+      english: Terms and percentage calculation
+      german: Terme und Prozentrechnung
+    key_idea: 5
+    level: 2
+  29:
+    title:
+      english: Interest and compound interest
+      german: Zinsen und Zinseszinsen
+    key_idea: 5
+    level: 2
+  30:
+    title:
+      english: Equations and inequalities
+      german: Gleichungen und Ungleichungen
+    key_idea: 5
+    level: 2
+  31:
+    title:
+      english: Arithmetic laws and binomial formulas
+      german: Rechengesetze und binomische Formeln
+    key_idea: 5
+    level: 2
+  32:
+    title:
+      english: Roots and irrational numbers
+      german: Wurzeln und irrationale Zahlen
+    key_idea: 5
+    level: 2
+  33:
+    title:
+      english: Conditional probability
+      german: Bedingte Wahrscheinlichkeit
+    key_idea: 1
+    level: 3
+  34:
+    title:
+      english: Random variables and probability distributions
+      german: Zufallsgrößen und Wahrscheinlichkeitsverteilungen
+    key_idea: 1
+    level: 3
+  35:
+    title:
+      english: Bernoulli experiment and binomial distribution
+      german: Bernoulli-Experiment und Binomialverteilung
+    key_idea: 1
+    level: 3
+  36:
+    title:
+      english: Power, exponential, and root functions
+      german: Potenz-, Exponential- und Wurzelfunktionen
+    key_idea: 2
+    level: 3
+  37:
+    title:
+      english: Trigonometric functions
+      german: Trigonometrische Funktionen
+    key_idea: 2
+    level: 3
+  38:
+    title:
+      english: Derivatives and rates of change
+      german: Ableitungen und Änderungsraten
+    key_idea: 2
+    level: 3
+  39:
+    title:
+      english: Tangents and derivative functions
+      german: Tangenten und Ableitungsfunktionen
+    key_idea: 2
+    level: 3
+  40:
+    title:
+      english: Area and perimeter calculations
+      german: Flächen- und Umfangsberechnungen
+    key_idea: 3
+    level: 3
+  41:
+    title:
+      english: Volume calculations
+      german: Volumenberechnungen
+    key_idea: 3
+    level: 3
+  42:
+    title:
+      english: Radians and circle segments
+      german: Bogenmaß und Kreisausschnitte
+    key_idea: 3
+    level: 3
+  43:
+    title:
+      english: Oblique projections and nets
+      german: Schrägbilder und Netze
+    key_idea: 4
+    level: 3
+  44:
+    title:
+      english: Similarity and congruence
+      german: Ähnlichkeit und Kongruenz
+    key_idea: 4
+    level: 3
+  45:
+    title:
+      english: Trigonometry and vectors
+      german: Trigonometrie und Vektoren
+    key_idea: 4
+    level: 3
+  46:
+    title:
+      english: Powers and roots
+      german: Potenzen und Wurzeln
+    key_idea: 5
+    level: 3
+  47:
+    title:
+      english: Equations and logarithms
+      german: Gleichungen und Logarithmen
+    key_idea: 5
+    level: 3
+  48:
+    title:
+      english: Compound interest calculations
+      german: Zinseszinsrechnung
+    key_idea: 5
+    level: 3
+  49:
+    title:
+      english: Vectors and linear combinations
+      german: Vektoren und Linearkombinationen
+    key_idea: 5
+    level: 3
+  50:
+    title:
+      english: Derivative rules
+      german: Ableitungsregeln
+    key_idea: 5
+    level: 3
+  51:
+    title:
+      english: Discrete and continuous random variables
+      german: Diskrete und stetige Zufallsgrößen
+    key_idea: 1
+    level: 4
+  52:
+    title:
+      english: Expected value and standard deviation
+      german: Erwartungswert und Standardabweichung
+    key_idea: 1
+    level: 4
+  53:
+    title:
+      english: Normal distribution and probabilities
+      german: Normalverteilung und Wahrscheinlichkeiten
+    key_idea: 1
+    level: 4
+  54:
+    title:
+      english: Significance of base e in exponential functions
+      german: Bedeutung der Basis e bei Exponentialfunktionen
+    key_idea: 2
+    level: 4
+  55:
+    title:
+      english: Properties of the exponential function
+      german: Eigenschaften der Exponentialfunktion
+    key_idea: 2
+    level: 4
+  56:
+    title:
+      english: Derivative and antiderivative
+      german: Ableitung und Stammfunktion
+    key_idea: 2
+    level: 4
+  57:
+    title:
+      english: Chain rules and composite functions
+      german: Verkettungen und zusammengesetzte Funktionen
+    key_idea: 2
+    level: 4
+  58:
+    title:
+      english: Extrema and integrals
+      german: Extremwerte und Integrale
+    key_idea: 2
+    level: 4
+  59:
+    title:
+      english: Inventory calculations and differential calculus
+      german: Bestandsberechnungen und Differentialrechnung
+    key_idea: 2
+    level: 4
+  60:
+    title:
+      english: Orthogonality and angle determination
+      german: Orthogonalität und Winkelbestimmung
+    key_idea: 3
+    level: 4
+  61:
+    title:
+      english: Intersection angles and distances
+      german: Schnittwinkel und Abstände
+    key_idea: 3
+    level: 4
+  62:
+    title:
+      english: Vector and scalar products
+      german: Vektor- und Skalarprodukte
+    key_idea: 3
+    level: 4
+  63:
+    title:
+      english: Definite integral and areas
+      german: Bestimmtes Integral und Flächeninhalte
+    key_idea: 3
+    level: 4
+  64:
+    title:
+      english: Scalar and vector product
+      german: Skalar- und Vektorprodukt
+    key_idea: 4
+    level: 4
+  65:
+    title:
+      english: Orthogonal vectors and planes
+      german: Orthogonale Vektoren und Ebenen
+    key_idea: 4
+    level: 4
+  66:
+    title:
+      english: Plane and line intersections
+      german: Ebenen- und Geradenschnittpunkte
+    key_idea: 4
+    level: 4
+  67:
+    title:
+      english: Reflections, area and volume calculations
+      german: Spiegelungen, Flächen- und Volumenberechnungen
+    key_idea: 4
+    level: 4
+  68:
+    title:
+      english: Natural logarithm
+      german: Natürlicher Logarithmus
+    key_idea: 5
+    level: 4
+  69:
+    title:
+      english: Derivative rules and antiderivatives
+      german: Ableitungsregeln und Stammfunktionen
+    key_idea: 5
+    level: 4
+  70:
+    title:
+      english: Linear equation systems and Gaussian method
+      german: Lineare Gleichungssysteme und das Gaußverfahren
+    key_idea: 5
+    level: 4
+  71:
+    title:
+      english: Scalar and vector products
+      german: Skalar- und Vektorprodukte
+    key_idea: 5
+    level: 4
+  72:
+    title:
+      english: Hypothesis tests and null hypotheses
+      german: Hypothesentests und Nullhypothesen
+    key_idea: 1
+    level: 5
+  73:
+    title:
+      english: Rejection region and error probability
+      german: Ablehnungsbereich und Irrtumswahrscheinlichkeit
+    key_idea: 1
+    level: 5
+  74:
+    title:
+      english: Types of errors and sample size
+      german: Fehlerarten und Stichprobenumfang
+    key_idea: 1
+    level: 5
+  75:
+    title:
+      english: Discrete and continuous random variables
+      german: Diskrete und stetige Zufallsgrößen
+    key_idea: 1
+    level: 5
+  76:
+    title:
+      english: Normal distribution and probabilities
+      german: Normalverteilung und Wahrscheinlichkeiten
+    key_idea: 1
+    level: 5
+  77:
+    title:
+      english: Exponential and logarithmic functions
+      german: Exponential- und Logarithmusfunktionen
+    key_idea: 2
+    level: 5
+  78:
+    title:
+      english: Inverse function and monotonicity
+      german: Umkehrfunktion und Monotonie
+    key_idea: 2
+    level: 5
+  79:
+    title:
+      english: Chain rules and asymptotes
+      german: Verkettungen und Asymptoten
+    key_idea: 2
+    level: 5
+  80:
+    title:
+      english: Optimization problems and integral functions
+      german: Extremwertprobleme und Integralfunktionen
+    key_idea: 2
+    level: 5
+  81:
+    title:
+      english: Differential and integral calculus
+      german: Differential- und Integralrechnung
+    key_idea: 2
+    level: 5
+  82:
+    title:
+      english: Orthogonality and angle determination
+      german: Orthogonalität und Winkelbestimmung
+    key_idea: 3
+    level: 5
+  83:
+    title:
+      english: Distances and vector products
+      german: Abstände und Vektorprodukte
+    key_idea: 3
+    level: 5
+  84:
+    title:
+      english: Definite integral and areas
+      german: Bestimmtes Integral und Flächeninhalte
+    key_idea: 3
+    level: 5
+  85:
+    title:
+      english: Volume calculations
+      german: Volumenberechnungen
+    key_idea: 3
+    level: 5
+  86:
+    title:
+      english: Scalar and vector product
+      german: Skalar- und Vektorprodukt
+    key_idea: 4
+    level: 5
+  87:
+    title:
+      english: Plane and line intersections
+      german: Ebenen- und Geradenschnittpunkte
+    key_idea: 4
+    level: 5
+  88:
+    title:
+      english: Orthogonality and geometric proofs
+      german: Orthogonalität und geometrische Beweise
+    key_idea: 4
+    level: 5
+  89:
+    title:
+      english: Euler's number and roots
+      german: Eulersche Zahl und Nullstellen
+    key_idea: 5
+    level: 5
+  90:
+    title:
+      english: Derivative rules and antiderivatives
+      german: Ableitungsregeln und Stammfunktionen
+    key_idea: 5
+    level: 5
+  91:
+    title:
+      english: Linear equation systems and Gaussian method
+      german: Lineare Gleichungssysteme und das Gaußverfahren
+    key_idea: 5
+    level: 5

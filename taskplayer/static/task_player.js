@@ -16,33 +16,51 @@
       });
     }
   
-    async fetchYaml(fileName) {
+    openTask(taskYaml, templateYaml) {
       try {
-        const response = await fetch(`${fileName}.yaml`);
-        if (!response.ok) {
-          throw new Error(`Failed to load file: ${fileName}.yaml`);
+        this.task = jsyaml.load(taskYaml);
+        this.template = jsyaml.load(templateYaml);
+  
+        this.applyStyles(this.template.styles);
+        this.applyStyles(this.task.styles);
+  
+        if (this.task.external_scripts && this.task.external_scripts.length > 0) {
+          this.loadExternalScripts(this.task.external_scripts)
+            .then(() => {
+              this.renderTemplate();
+              this.executeTaskScript();
+            })
+            .catch(error => {
+              console.error('Error loading external scripts:', error);
+            });
+        } else {
+          this.renderTemplate();
+          this.executeTaskScript();
         }
-        const yamlText = await response.text();
-        return jsyaml.load(yamlText);
-      } catch (error) {
-        console.error(`Error fetching YAML file ${fileName}:`, error);
-        return null;
-      }
-    }
-  
-    async openTask(taskName) {
-      try {
-        this.task = await this.fetchYaml(taskName);
-        if (!this.task) throw new Error('Invalid task YAML content.');
-  
-        this.template = await this.fetchYaml(this.task.template_id);
-        if (!this.template) throw new Error('Invalid template YAML content.');
-  
-        this.renderTemplate();
-        this.executeTaskScript();
       } catch (error) {
         console.error('Error opening task:', error);
       }
+    }
+  
+    applyStyles(styles) {
+      if (styles) {
+        const styleSheet = document.createElement('style');
+        styleSheet.type = 'text/css';
+        styleSheet.innerText = styles;
+        document.head.appendChild(styleSheet);
+      }
+    }
+  
+    loadExternalScripts(scripts) {
+      return Promise.all(scripts.map(script => {
+        return new Promise((resolve, reject) => {
+          const scriptElement = document.createElement('script');
+          scriptElement.src = `${this.config.externalScriptsPath || ''}${script}`;
+          scriptElement.onload = resolve;
+          scriptElement.onerror = reject;
+          document.head.appendChild(scriptElement);
+        });
+      }));
     }
   
     renderTemplate() {
