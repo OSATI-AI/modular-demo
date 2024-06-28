@@ -7,7 +7,8 @@
       this.playerApi = {
         sendEvent: this.sendEvent.bind(this),
         receiveEvent: this.receiveEvent.bind(this),
-        callTemplateScript: this.callTemplateScript.bind(this)
+        callTemplateScript: this.callTemplateScript.bind(this),
+        getTaskDetails: () => this.taskDetails // Added method to get task details
       };
   
       // Route events from the parent application to tasks/templates
@@ -77,6 +78,10 @@
     executeTaskScript() {
       try {
         const playerApi = this.playerApi;
+        this.taskDetails = {
+          description: this.task.description,
+          title: this.task.title
+        };
         const taskScript = new Function('playerApi', this.task.script);
         taskScript(playerApi);
       } catch (error) {

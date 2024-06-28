@@ -24,13 +24,12 @@
         }
     </script>
 
-
     <style>
         #task-container {
-          border: 5px solid green;
-          padding: 10px;
+            border: 5px solid green;
+            padding: 10px;
         }
-      </style>
+    </style>
 </head>
 <body>
     <div class="sidebar">
@@ -73,11 +72,12 @@
     <div class="content">
         <h3>Content</h3>
         <div>
-        <div id="task-container"></div>
-        <p id="typing-indicator"></p>
-        <p id="evaluation-result"></p>
-        <button id="check-btn">Check</button>
-        <button id="refresh-btn">Refresh</button>
+            <div id="task-container"></div>
+            <p id="typing-indicator"></p>
+            <p id="evaluation-result"></p>
+            <p id="task_details"></p>    
+            <button id="check-btn">Check</button>
+            <button id="refresh-btn">Refresh</button>
         </div>
     </div>
 
@@ -89,7 +89,7 @@
     <script type="module">
         import TaskPlayer from '{% static "task_player.js" %}';
 
-        let player_config ={externalScriptsPath: '{% static "scripts/" %}'}
+        let player_config = { externalScriptsPath: '{% static "scripts/" %}' }
         const player = new TaskPlayer('task-container', player_config);
 
         window.loadTask = function(taskId) {
@@ -119,9 +119,16 @@
                 detail: { event: 'refresh' }
             });
             document.dispatchEvent(customEvent);
-            document.getElementById('evaluation-result').innerText = ""
-            document.getElementById('typing-indicator').innerText = ""
+            document.getElementById('evaluation-result').innerText = "";
+            document.getElementById('typing-indicator').innerText = "";
         });
+
+        function requestTaskDetails() {
+            const customEvent = new CustomEvent('parentEvent', {
+                detail: { event: 'get_task_details' }
+            });
+            document.dispatchEvent(customEvent);
+        }
 
         document.addEventListener('input', (event) => {
             const typingIndicator = document.getElementById('typing-indicator');
@@ -139,6 +146,16 @@
         document.addEventListener('evaluationResult', (event) => {
             const evaluationResult = document.getElementById('evaluation-result');
             evaluationResult.innerText = `Evaluation Result: ${JSON.stringify(event.detail)}`;
+        });
+
+        document.addEventListener('task_loaded', () => {
+            requestTaskDetails();
+        });
+
+        document.addEventListener('task_details', (event) => {
+            const taskDetails = event.detail;
+            document.getElementById('task_details').innerText = `Task Details: ${JSON.stringify(taskDetails)}`;
+            // Here you can use the taskDetails for the AI tutor
         });
     </script>
 </body>

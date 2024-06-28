@@ -46,5 +46,4 @@ function plot_linear_function(container, slope, offspring){
       };
 
     new p5(s);
-    console.log("Plot Linear Function!")
 };

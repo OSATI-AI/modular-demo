@@ -1,35 +1,51 @@
 task_id: "task_003"
 template_id: "template_figure_question_answer"
 title: "Linear Function Gradient Task"
-description: "Determine the gradient of a linear function."
+description: "This task requires the user to determine the gradient of a linear function. The user will see a graph of the function and an input field to enter the gradient."
 topic_id: 1
 events:
-  send: ["evaluationResult"]
-  receive: ["evaluate", "refresh"]
+  send: ["evaluationResult", "task_details", "task_loaded"]
+  receive: ["evaluate", "refresh", "get_task_details"]
 external_scripts:
   - "figure.js"
 script: |
+  let gradient;
+  const { questionElement, imagePlaceholder, answerElement } = playerApi.callTemplateScript('createLayout', {});
+
   function generateExercise() {
-    let gradient;
     do {
       gradient = Math.floor(Math.random() * 11) - 5;
     } while (gradient === 0);
     questionElement.innerText = "What is the gradient of the linear function shown in the figure?";
     plot_linear_function("image_placeholder", gradient, 0);
+    playerApi.sendEvent('task_loaded', {});
     return { gradient };
   }
 
-  const { questionElement, imagePlaceholder, answerElement } = playerApi.callTemplateScript('createLayout', {});
-  let exercise = generateExercise();
+  function init(){
 
-  playerApi.receiveEvent('evaluate', function() {
-    const userInput = parseFloat(answerElement.value);
-    const isCorrect = userInput === exercise.gradient;
-    playerApi.sendEvent('evaluationResult', { userInput, result: exercise.gradient, isCorrect });
-  });
+    playerApi.receiveEvent('evaluate', function() {
+      const userInput = parseFloat(answerElement.value);
+      const isCorrect = userInput === gradient;
+      playerApi.sendEvent('evaluationResult', { userInput, result: gradient, isCorrect });
+    });
 
-  playerApi.receiveEvent('refresh', function() {
-    imagePlaceholder.innerHTML = '';
-    answerElement.value = '';
-    exercise = generateExercise();
-  });
+    playerApi.receiveEvent('refresh', function() {
+      imagePlaceholder.innerHTML = '';
+      answerElement.value = '';
+      generateExercise();
+    });
+
+    playerApi.receiveEvent('get_task_details', function() {
+      const taskDetails = playerApi.getTaskDetails();
+      const dynamicDetails = `Current exercise: Determine the gradient of the linear function with gradient ${gradient}.`;
+      playerApi.sendEvent('task_details', {
+        staticInfo: taskDetails.description,
+        dynamicDetails: dynamicDetails
+      });
+    });
+  }
+
+  init();  
+  generateExercise();
+  

@@ -4,9 +4,15 @@ title: "Multiple Choice Question"
 description: "Select the correct answer."
 topic_id: 1
 events:
-  send: ["evaluationResult"]
-  receive: ["evaluate", "refresh"]
+  send: ["evaluationResult", "task_details", "task_loaded"]
+  receive: ["evaluate", "refresh", "get_task_details"]
 script: |
+  let exercise;
+  const { questionElement, choiceElements } = playerApi.callTemplateScript('createLayout', {
+    choices: 4,
+    choicesData: []
+  });
+
   function generateExercise() {
     const choices = [
       { text: "Berlin", value: "Berlin" },
@@ -18,14 +24,6 @@ script: |
     return { choices, correctAnswerId };
   }
 
-  const { questionElement, choiceElements } = playerApi.callTemplateScript('createLayout', {
-    choices: 4,
-    choicesData: generateExercise().choices
-  });
-
-  let exercise = generateExercise();
-  questionElement.innerText = "What is the capital of France?";
-  
   function populateChoices() {
     exercise.choices.forEach((choice, index) => {
       choiceElements[index].innerText = choice.text;
@@ -33,26 +31,41 @@ script: |
     });
   }
 
-  populateChoices();
-
-  playerApi.receiveEvent('evaluate', function() {
-    const selectedChoiceElement = document.querySelector('.choice.selected');
-    if (!selectedChoiceElement) {
-      playerApi.sendEvent('evaluationResult', { result: 'No choice selected' });
-      return;
-    }
-    const selectedId = Array.from(choiceElements).indexOf(selectedChoiceElement);
-    const isCorrect = selectedId === exercise.correctAnswerId;
-    playerApi.sendEvent('evaluationResult', {
-      selectedId,
-      selectedContent: selectedChoiceElement.innerText,
-      isCorrect
+  function init() {
+    playerApi.receiveEvent('evaluate', function() {
+      const selectedChoiceElement = document.querySelector('.choice.selected');
+      if (!selectedChoiceElement) {
+        playerApi.sendEvent('evaluationResult', { result: 'No choice selected' });
+        return;
+      }
+      const selectedId = Array.from(choiceElements).indexOf(selectedChoiceElement);
+      const isCorrect = selectedId === exercise.correctAnswerId;
+      playerApi.sendEvent('evaluationResult', {
+        selectedId,
+        selectedContent: selectedChoiceElement.innerText,
+        isCorrect
+      });
     });
-  });
 
-  playerApi.receiveEvent('refresh', function() {
-    selectedChoice = null;
-    choiceElements.forEach(choice => choice.classList.remove('selected'));
-    exercise = generateExercise();
-    populateChoices();
-  });
+    playerApi.receiveEvent('refresh', function() {
+      selectedChoice = null;
+      choiceElements.forEach(choice => choice.classList.remove('selected'));
+      exercise = generateExercise();
+      populateChoices();
+    });
+
+    playerApi.receiveEvent('get_task_details', function() {
+      const taskDetails = playerApi.getTaskDetails();
+      const dynamicDetails = `Current exercise: What is the capital of France? Choices: ${exercise.choices.map(c => c.text).join(', ')}.`;
+      playerApi.sendEvent('task_details', {
+        staticInfo: taskDetails.description,
+        dynamicDetails: dynamicDetails
+      });
+    });
+  }
+
+  init();
+  exercise = generateExercise();
+  questionElement.innerText = "What is the capital of France?";
+  populateChoices();
+  playerApi.sendEvent('task_loaded', {});
