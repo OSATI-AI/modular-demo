@@ -1,0 +1,60 @@
+task_id: "task_missing_number_grid"
+template_id: "template_figure_question_answer"
+title: "Missing Number (Grid)"
+description: "The student sees a 10x10 grid showing the numbers from 1 to 100. One of the grid cells is empty. The student has to find the missing number."
+topic_id: 15
+events:
+  send: ["evaluationResult", "task_details", "task_loaded"]
+  receive: ["evaluate", "refresh", "get_task_details"]
+external_scripts:
+  - "missing_number_grid.js"
+script: |
+  let answer;
+  const { questionElement, imagePlaceholder, answerElement } = playerApi.callTemplateScript('createLayout', {});
+
+  function generateExercise() {
+    do {
+      answer = Math.floor(Math.random() * 100) + 1;
+    } while (answer === 0);
+
+    questionElement.innerText = "Which number is missing?";
+    const answerInput = document.createElement("input");
+    answerInput.className = 'input input-bordered w-full max-w-xs';
+    answerInput.id = "answerField";
+    const answerSpan = document.createElement("span");
+    const answerLabel = document.createElement("p");
+    answerLabel.innerHTML = "<b>Missing Number: </b>";
+    answerSpan.append(answerLabel);
+    answerSpan.append(answerInput);
+    answerElement.append(answerSpan);
+
+    plot_missing_number_grid(answer, "image_placeholder");
+
+    playerApi.sendEvent('task_loaded', {});
+  }
+
+  function init() {
+    playerApi.receiveEvent('get_task_details', function() {
+      const taskDetails = playerApi.getTaskDetails();
+      const dynamicDetails = `The grid shows all numbers between 1 and 100 except for ${answer}, whose corresponding cell in the grid is empty. Therefore, the missing number and correct answer is ${answer}.`;
+      playerApi.sendEvent('task_details', {
+        staticInfo: taskDetails.description,
+        dynamicDetails: dynamicDetails
+      });
+    });
+
+    playerApi.receiveEvent('evaluate', function() {
+      const userAnswer = parseInt(document.getElementById('answerField').value, 10);
+      const isCorrect = userAnswer === answer;
+      playerApi.sendEvent('evaluationResult', { userAnswer, answer, isCorrect });
+    });
+
+    playerApi.receiveEvent('refresh', function() {
+      answerElement.innerHTML = '';
+      imagePlaceholder.innerHTML = ''; 
+      generateExercise();
+    });
+  }
+
+  init();
+  generateExercise();

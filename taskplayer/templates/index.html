@@ -6,12 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Player Demo</title>
     <link rel="stylesheet" href="{% static 'styles/global.css' %}">
-
+    <script defer src="//unpkg.com/mathlive"></script>
     <script>
         function toggleVisibility(element) {
             var nextElement = element.nextElementSibling;
             var arrow = element.querySelector('.arrow');
-
             if (nextElement.style.display === "none") {
                 nextElement.style.display = "block";
                 element.classList.add('expanded');
@@ -23,61 +22,137 @@
             }
         }
     </script>
-
     <style>
         #task-container {
             border: 5px solid green;
             padding: 10px;
         }
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            border-left: 1px solid #ccc;
+            padding-left: 10px;
+        }
+        .chat-history {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 400px;
+        }
+        .chat-input {
+            display: flex;
+        }
+        .chat-input input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-right: none;
+        }
+        .chat-input button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .chat-message.user {
+            color: blue;
+        }
+        .chat-message.bot {
+            color: green;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .button-container {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            background-color: #3498db;
+            color: #ffffff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .layout_button {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <h3>Sidebar</h3>
-        <!-- Sidebar items will be added here by the Django view -->
-        {% for level, key_ideas in structured_tasks.items %}
-            <div class="level">
-                <h4 class="expandable" onclick="toggleVisibility(this)">
-                    <span class="arrow">▶</span> {{ level }}
-                </h4>
-                <div class="key-ideas" style="display: none;">
-                    {% for key_idea, topics in key_ideas.items %}
-                        <div class="key-idea">
-                            <h5 class="expandable" onclick="toggleVisibility(this)">
-                                <span class="arrow">▶</span> {{ key_idea }}
-                            </h5>
-                            <div class="topics" style="display: none;">
-                                {% for topic, tasks in topics.items %}
-                                    <div class="topic">
-                                        <h6 class="expandable" onclick="toggleVisibility(this)">
-                                            <span class="arrow">▶</span> {{ topic }}
-                                        </h6>
-                                        <div class="tasks" style="display: none;">
-                                            {% for title, filename in tasks %}
-                                                <button class="sidebar-item"
-                                                    onclick="loadTask('{{filename}}')"
-                                                >{{ title }}</button>
-                                            {% endfor %}
+    <div class="container">
+        <div class="sidebar">
+            <h3>Sidebar</h3>
+            <!-- Sidebar items will be added here by the Django view -->
+            {% for level, key_ideas in structured_tasks.items %}
+                <div class="level">
+                    <h4 class="expandable" onclick="toggleVisibility(this)">
+                        <span class="arrow">▶</span> {{ level }}
+                    </h4>
+                    <div class="key-ideas" style="display: none;">
+                        {% for key_idea, topics in key_ideas.items %}
+                            <div class="key-idea">
+                                <h5 class="expandable" onclick="toggleVisibility(this)">
+                                    <span class="arrow">▶</span> {{ key_idea }}
+                                </h5>
+                                <div class="topics" style="display: none;">
+                                    {% for topic, tasks in topics.items %}
+                                        <div class="topic">
+                                            <h6 class="expandable" onclick="toggleVisibility(this)">
+                                                <span class="arrow">▶</span> {{ topic }}
+                                            </h6>
+                                            <div class="tasks" style="display: none;">
+                                                {% for title, filename in tasks %}
+                                                    <button class="sidebar-item"
+                                                        onclick="loadTask('{{filename}}')"
+                                                    >{{ title }}</button>
+                                                {% endfor %}
+                                            </div>
                                         </div>
-                                    </div>
-                                {% endfor %}
+                                    {% endfor %}
+                                </div>
                             </div>
-                        </div>
-                    {% endfor %}
+                        {% endfor %}
+                    </div>
                 </div>
-            </div>
-        {% endfor %}
-    </div>
+            {% endfor %}
+        </div>
 
-    <div class="content">
-        <h3>Content</h3>
-        <div>
-            <div id="task-container"></div>
-            <p id="typing-indicator"></p>
-            <p id="evaluation-result"></p>
-            <p id="task_details"></p>    
-            <button id="check-btn">Check</button>
-            <button id="refresh-btn">Refresh</button>
+        <div class="content">
+            <h3>Content</h3>
+            <div>
+                <div id="task-container"></div>
+                <p id="typing-indicator"></p>
+                <p id="evaluation-result"></p>
+                <button id="check-btn">Check</button>
+                <button id="refresh-btn">Refresh</button>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <h3>AI Tutor Chat</h3>
+            <div class="chat-history" id="chat-history"></div>
+            <div class="chat-input">
+                <input type="text" id="chat-input" placeholder="Type your message here..." />
+                <button id="chat-send-btn">Send</button>
+            </div>
         </div>
     </div>
 
@@ -154,9 +229,84 @@
 
         document.addEventListener('task_details', (event) => {
             const taskDetails = event.detail;
-            document.getElementById('task_details').innerText = `Task Details: ${JSON.stringify(taskDetails)}`;
-            // Here you can use the taskDetails for the AI tutor
+            fetch('/set_task_context/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(taskDetails)
+            }).then(response => {
+                if (!response.ok) {
+                    console.error('Error sending task details:', response.statusText);
+                }
+            }).catch(error => {
+                console.error('Error sending task details:', error);
+            });
         });
+
+        document.getElementById('chat-send-btn').addEventListener('click', () => {
+            const message = document.getElementById('chat-input').value;
+            if (message.trim() === '') return;
+
+            const chatHistory = document.getElementById('chat-history');
+
+            // Add user message to chat history
+            const userMessage = document.createElement('div');
+            userMessage.className = 'chat-message user';
+            userMessage.innerText = message;
+            chatHistory.appendChild(userMessage);
+
+            // Add spinner
+            const spinner = document.createElement('div');
+            spinner.className = 'spinner';
+            chatHistory.appendChild(spinner);
+
+            // Send the message to the backend via AJAX
+            fetch('/send_message/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Remove spinner
+                if (spinner.parentNode) {
+                    spinner.parentNode.removeChild(spinner);
+                }
+
+                // Add bot response to chat history
+                const botResponse = document.createElement('div');
+                botResponse.className = 'chat-message bot';
+                botResponse.innerText = data.response;
+                chatHistory.appendChild(botResponse);
+
+                // Scroll to the bottom of chat history
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            });
+
+            // Clear the input field
+            document.getElementById('chat-input').value = '';
+        });
+
+        // Function to get CSRF token for AJAX POST requests
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
     </script>
 </body>
 </html>

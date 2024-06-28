@@ -1,0 +1,56 @@
+task_id: "task_square_root"
+template_id: "template_question_answer"
+title: "Square Root"
+description: "The student sees a mathematical term in which they have to calculate the square root of a square number."
+topic_id: 32
+events:
+  send: ["evaluationResult", "task_details", "task_loaded"]
+  receive: ["evaluate", "refresh", "get_task_details"]
+script: |
+  let answer;
+  const { questionElement, answerElement } = playerApi.callTemplateScript('createLayout', {});
+
+  function generateExercise() {
+    do {
+      answer = Math.floor(Math.random() * 9) + 2; // Random number between 2 and 10
+    } while (answer === 0);
+
+    const equation = `\\sqrt{${answer ** 2}} = \\placeholder[answer]{}`;
+
+    questionElement.innerText = "Find the square root.";
+    const answerField = document.createElement("math-field");
+    answerField.id = "equation";
+    answerField.className = 'w-48';
+    answerField.setValue(equation);
+    answerField.mathVirtualKeyboardPolicy = "manual";
+    answerField.readonly = true;
+    answerElement.append(answerField);
+
+    playerApi.sendEvent('task_loaded', {});
+  }
+
+  function init() {
+    playerApi.receiveEvent('get_task_details', function() {
+      const taskDetails = playerApi.getTaskDetails();
+      const dynamicDetails = `The current exercise is to find the square root of ${answer ** 2}. Therefore, the correct answer is ${answer}.`;
+      playerApi.sendEvent('task_details', {
+        staticInfo: taskDetails.description,
+        dynamicDetails: dynamicDetails
+      });
+    });
+
+    playerApi.receiveEvent('evaluate', function() {
+      const userAnswer = parseInt(document.getElementById('equation').getPromptValue('answer'), 10);
+      const isCorrect = userAnswer === answer;
+      playerApi.sendEvent('evaluationResult', { userAnswer, answer, isCorrect });
+    });
+
+    playerApi.receiveEvent('refresh', function() {
+      answerElement.innerHTML = '';
+      questionElement.innerHTML = '';
+      generateExercise();
+    });
+  }
+
+  init();
+  generateExercise();

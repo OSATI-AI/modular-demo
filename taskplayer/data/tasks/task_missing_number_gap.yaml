@@ -1,0 +1,68 @@
+task_id: "task_missing_number_gap"
+template_id: "template_question_answer"
+title: "Missing Number (Gap)"
+description: "The student sees a sequence of numbers that increase by 1 from left to right. One of the numbers is blanked out. The student has to fill in the missing number by checking the number on the left and on the right (or only the left and only the right if the missing number is the first or last number)."
+topic_id: 15
+events:
+  send: ["evaluationResult", "task_details", "task_loaded"]
+  receive: ["evaluate", "refresh", "get_task_details"]
+script: |
+  let answer, sequence;
+  const { questionElement, answerElement } = playerApi.callTemplateScript('createLayout', {});
+
+  function generateExercise() {
+    sequence = [];
+    const start = Math.floor(Math.random() * 90) + 1;
+    const missingIdx = Math.floor(Math.random() * 10);
+
+    let seqString = "";
+    for (let i = 0; i < 10; i++) {
+      const number = start + i;
+      if (i === missingIdx) {
+        answer = number;
+        seqString += "\\placeholder[answer]{}";
+        sequence.push("???");
+      } else {
+        seqString += number;
+        sequence.push(number.toString());
+      }
+      if (i < 9) {
+        seqString += ",";
+      }
+    }
+
+    questionElement.innerText = "Fill in the gap with the correct number.";
+    const answerField = document.createElement("math-field");
+    answerField.id = "answer_field";
+    answerField.setValue(seqString);
+    answerField.mathVirtualKeyboardPolicy = "manual";
+    answerField.readonly = true;
+    answerElement.append(answerField);
+
+    playerApi.sendEvent('task_loaded', {});
+  }
+
+  function init() {
+    playerApi.receiveEvent('get_task_details', function() {
+      const taskDetails = playerApi.getTaskDetails();
+      const dynamicDetails = `The displayed sequence is ${sequence}. Therefore, the correct number that fills the gap is ${answer}.`;
+      playerApi.sendEvent('task_details', {
+        staticInfo: taskDetails.description,
+        dynamicDetails: dynamicDetails
+      });
+    });
+
+    playerApi.receiveEvent('evaluate', function() {
+      const userAnswer = parseInt(document.getElementById("answer_field").getPromptValue('answer'), 10);
+      const isCorrect = userAnswer === answer;
+      playerApi.sendEvent('evaluationResult', { userAnswer, answer, isCorrect });
+    });
+
+    playerApi.receiveEvent('refresh', function() {
+      answerElement.innerHTML = '';
+      generateExercise();
+    });
+  }
+
+  init();
+  generateExercise();

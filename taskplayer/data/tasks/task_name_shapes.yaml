@@ -1,0 +1,107 @@
+task_id: "task_name_shapes"
+template_id: "template_multiple_choice"
+title: "Name Shapes"
+description: "The student is asked to identify a certain geometrical shape from a multiple-choice list of 3 items, each showing a different shape."
+topic_id: 12
+events:
+  send: ["evaluationResult", "task_details", "task_loaded"]
+  receive: ["evaluate", "refresh", "get_task_details"]
+external_scripts:
+  - "shapes.js"
+script: |
+  let answer, selected;
+  const NUM_CHOICES = 3;
+  const shapes = {
+    "triangle": {
+      "name": "a triangle",
+      "function": drawTriangle
+    },
+    "rectangle": {
+      "name": "a rectangle",
+      "function": drawRectangle
+    },
+    "quadrangle": {
+      "name": "a quadrangle",
+      "function": drawQuadrangle
+    },
+    "pentagon": {
+      "name": "a pentagon",
+      "function": drawPentagon
+    },
+    "ellipse": {
+      "name": "an ellipse",
+      "function": drawEllipse
+    }
+  };
+  let choices;
+
+  const { questionElement, choiceElements } = playerApi.callTemplateScript('createLayout', { choices: NUM_CHOICES, choicesData: [] });
+
+  function generateExercise() {
+    selected = null;
+    choiceElements.forEach(choice => choice.innerHTML = '');
+    
+    const correctShape = Object.keys(shapes)[Math.floor(Math.random() * Object.keys(shapes).length)];
+    const shapeChoices = [correctShape];
+    for (let i = 0; i < NUM_CHOICES - 1; i++) {
+      let shape;
+      do {
+        shape = Object.keys(shapes)[Math.floor(Math.random() * Object.keys(shapes).length)];
+      } while (shapeChoices.includes(shape));
+      shapeChoices.push(shape);
+    }
+    shapeChoices.sort(() => Math.random() - 0.5); // Shuffle the choices
+
+    answer = shapeChoices.indexOf(correctShape);
+    choices = shapeChoices.map(shape => shapes[shape].name);
+
+    questionElement.innerText = `Which shape is ${shapes[correctShape].name}?`;
+
+    shapeChoices.forEach((shape, index) => {
+      const choiceElement = choiceElements[index];
+      choiceElement.id = `choice_${index}`;
+      choiceElement.onclick = () => selectChoice(index);
+      shapes[shape].function(`choice_${index}`, 100);
+    });
+
+    playerApi.sendEvent('task_loaded', {});
+  }
+
+  function selectChoice(index) {
+    choiceElements.forEach((choice, i) => {
+      if (i === index) {
+        choice.classList.add('selected');
+      } else {
+        choice.classList.remove('selected');
+      }
+    });
+    selected = index;
+  }
+
+  function init() {
+    playerApi.receiveEvent('get_task_details', function() {
+      const taskDetails = playerApi.getTaskDetails();
+      const dynamicDetails = `The current question is: 'Which shape is ${choices[answer]}?'. The multiple-choice list shows images of the following shapes: ${choices.join(', ')}. Therefore, choice number ${answer + 1} is the correct answer.`;
+      playerApi.sendEvent('task_details', {
+        staticInfo: taskDetails.description,
+        dynamicDetails: dynamicDetails
+      });
+    });
+
+    playerApi.receiveEvent('evaluate', function() {
+      if (selected === null) {
+        playerApi.sendEvent('evaluationResult', { result: 'No choice selected' });
+        return;
+      }
+      const isCorrect = selected === answer;
+      playerApi.sendEvent('evaluationResult', { selected, answer, isCorrect });
+    });
+
+    playerApi.receiveEvent('refresh', function() {
+      choiceElements.forEach(choice => choice.classList.remove('selected'));
+      generateExercise();
+    });
+  }
+
+  init();
+  generateExercise();

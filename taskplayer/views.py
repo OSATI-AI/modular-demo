@@ -2,6 +2,9 @@ from django.shortcuts import render
 from django.http import JsonResponse
 import yaml
 import os
+import json
+from .conversation_manager import conversation_manager
+from django.views.decorators.csrf import csrf_exempt
 
 tasks_dir = os.path.join(os.path.dirname(__file__), 'data/tasks')
 template_dir = os.path.join(os.path.dirname(__file__), 'data/templates')
@@ -72,3 +75,22 @@ def load_task(request):
         return JsonResponse({'task': yaml.dump(task_yaml), 'template': yaml.dump(template_yaml)})
 
     return JsonResponse({'error': 'Task ID not provided'}, status=400)
+
+def set_task_context(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            print('Task Details:', data)
+            conversation_manager.set_context(data)
+            return JsonResponse({'status': 'success'})
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def send_message(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        message = data.get('message', '')
+        response = conversation_manager.get_response(message)
+        return JsonResponse({'response': response})

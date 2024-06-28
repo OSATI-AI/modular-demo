@@ -1,6 +1,6 @@
 template_id: "template_figure_question_answer"
 title: "Figure Question Answer Template"
-description: "A template with a question, an image placeholder, and a single input field."
+description: "A template with a question, a figure placeholder, and a container for an input field."
 events:
   send: ["input"]
   receive: []
@@ -8,24 +8,13 @@ html: |
   <div class="question-container">
     <p id="question"></p>
     <div id="image_placeholder"></div>
-    <input type="text" id="answer" />
+    <div id="answer"></div> <!-- Empty container for the answer element -->
   </div>
-styles: |
-  #image_placeholder {
-    width: 400px;
-    border: 1px solid #ccc;
-    margin-bottom: 10px;
-  }
 scripts: |
   function createLayout(details) {
     const questionElement = document.getElementById('question');
     const imagePlaceholder = document.getElementById('image_placeholder');
     const answerElement = document.getElementById('answer');
-    
-    answerElement.addEventListener('input', function(event) {
-      playerApi.sendEvent('input', event.target.value);
-    });
-    
     return { questionElement, imagePlaceholder, answerElement };
   }
 

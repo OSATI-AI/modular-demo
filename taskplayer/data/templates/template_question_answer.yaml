@@ -1,23 +1,18 @@
 template_id: "template_question_answer"
 title: "Simple Input Template"
-description: "A template with a question and a single input field."
+description: "A template with a question and a container for an input field or any other element."
 events:
-  send: ["input"]
-  receive: ["refresh"]
+  send: []
+  receive: []
 html: |
   <div class="question-container">
     <p id="question"></p>
-    <input type="text" id="answer" />
+    <div id="answer"></div> <!-- Empty container for the answer element -->
   </div>
 scripts: |
   function createLayout(details) {
     const questionElement = document.getElementById('question');
     const answerElement = document.getElementById('answer');
-    
-    answerElement.addEventListener('input', function(event) {
-      playerApi.sendEvent('input', event.target.value);
-    });
-    
     return { questionElement, answerElement };
   }
 
@@ -26,7 +21,3 @@ scripts: |
       return createLayout(details);
     }
   };
-
-  playerApi.receiveEvent('refresh', function() {
-    answerElement.value = '';
-  });

@@ -1,0 +1,55 @@
+task_id: "task_multiplying_by_tens"
+template_id: "template_question_answer"
+title: "Multiplying by Tens"
+description: "The student sees a multiplication exercise where both numbers are multiples of 10. The student has to find the solution of the multiplication."
+topic_id: 17
+events:
+  send: ["evaluationResult", "task_details", "task_loaded"]
+  receive: ["evaluate", "refresh", "get_task_details"]
+script: |
+  let answer, n1, n2;
+  const { questionElement, answerElement } = playerApi.callTemplateScript('createLayout', {});
+
+  function generateExercise() {
+    n1 = Math.floor(Math.random() * 9 + 1) * 10;
+    n2 = Math.floor(Math.random() * 9 + 1) * 10;
+
+    answer = n1 * n2;
+    const equation = `${n1} \\cdot ${n2} = \\placeholder[answer]{}`;
+
+    questionElement.innerText = "Multiply.";
+    const answerField = document.createElement("math-field");
+    answerField.id = "equation";
+    answerField.className = 'w-48';
+    answerField.setValue(equation);
+    answerField.mathVirtualKeyboardPolicy = "manual";
+    answerField.readonly = true;
+    answerElement.append(answerField);
+
+    playerApi.sendEvent('task_loaded', {});
+  }
+
+  function init() {
+    playerApi.receiveEvent('get_task_details', function() {
+      const taskDetails = playerApi.getTaskDetails();
+      const dynamicDetails = `The current exercise is ${n1} * ${n2}. Therefore, the correct answer is ${answer}.`;
+      playerApi.sendEvent('task_details', {
+        staticInfo: taskDetails.description,
+        dynamicDetails: dynamicDetails
+      });
+    });
+
+    playerApi.receiveEvent('evaluate', function() {
+      const userAnswer = parseInt(document.getElementById('equation').getPromptValue('answer'), 10);
+      const isCorrect = userAnswer === answer;
+      playerApi.sendEvent('evaluationResult', { userAnswer, answer, isCorrect });
+    });
+
+    playerApi.receiveEvent('refresh', function() {
+      answerElement.innerHTML = '';
+      generateExercise();
+    });
+  }
+
+  init();
+  generateExercise();

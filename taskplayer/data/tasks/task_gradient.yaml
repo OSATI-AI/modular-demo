@@ -1,8 +1,8 @@
-task_id: "task_003"
+task_id: "task_gradient"
 template_id: "template_figure_question_answer"
 title: "Linear Function Gradient Task"
 description: "This task requires the user to determine the gradient of a linear function. The user will see a graph of the function and an input field to enter the gradient."
-topic_id: 1
+topic_id: 23
 events:
   send: ["evaluationResult", "task_details", "task_loaded"]
   receive: ["evaluate", "refresh", "get_task_details"]

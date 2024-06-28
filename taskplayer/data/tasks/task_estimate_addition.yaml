@@ -1,0 +1,82 @@
+task_id: "task_estimate_addition"
+template_id: "template_multiple_choice"
+title: "Estimate Addition"
+description: "The student has to estimate the solution of an addition problem with two floating point numbers by rounding them and adding the rounded numbers together. This is a multiple choice exercise where only one choice is the correct answer."
+topic_id: 18
+events:
+  send: ["evaluationResult", "task_details", "task_loaded"]
+  receive: ["evaluate", "refresh", "get_task_details"]
+script: |
+  let num1, num2, answer, choices;
+  const NUM_CHOICES = 4;
+  const { questionElement, choiceElements } = playerApi.callTemplateScript('createLayout', { choices: NUM_CHOICES, choicesData: [] });
+
+  function generateExercise() {
+    num1 = (Math.random() * 98 + 1).toFixed(2);
+    num2 = (Math.random() * 98 + 1).toFixed(2);
+
+    const correct = Math.round(num1) + Math.round(num2);
+    choices = [correct];
+    for (let i = 0; i < NUM_CHOICES - 1; i++) {
+      let delta;
+      do {
+        delta = Math.floor(Math.random() * 21) - 10;
+      } while (choices.includes(correct + delta));
+      choices.push(correct + delta);
+    }
+
+    choices.sort((a, b) => a - b);
+    answer = choices.indexOf(correct);
+    questionElement.innerText = `Estimate: ${num1} + ${num2} = `;
+    choices.forEach((choice, index) => {
+      choiceElements[index].innerText = choice;
+      choiceElements[index].onclick = () => selectChoice(index);
+    });
+
+    playerApi.sendEvent('task_loaded', {});
+  }
+
+  function selectChoice(index) {
+    choiceElements.forEach((choice, i) => {
+      if (i === index) {
+        choice.classList.add('selected');
+      } else {
+        choice.classList.remove('selected');
+      }
+    });
+    playerApi.selectedChoice = index;
+  }
+
+  function init() {
+    playerApi.receiveEvent('get_task_details', function() {
+      const taskDetails = playerApi.getTaskDetails();
+      const dynamicDetails = `The exercise is ${num1} + ${num2}. The possible choices are: ${choices}. The correct answer is choice number ${answer + 1}, which is ${choices[answer]}.`;
+      playerApi.sendEvent('task_details', {
+        staticInfo: taskDetails.description,
+        dynamicDetails: dynamicDetails
+      });
+    });
+
+    playerApi.receiveEvent('evaluate', function() {
+      const selectedChoiceElement = document.querySelector('.choice.selected');
+      if (!selectedChoiceElement) {
+        playerApi.sendEvent('evaluationResult', { result: 'No choice selected' });
+        return;
+      }
+      const selectedId = Array.from(choiceElements).indexOf(selectedChoiceElement);
+      const isCorrect = selectedId === answer;
+      playerApi.sendEvent('evaluationResult', {
+        selectedId,
+        selectedContent: selectedChoiceElement.innerText,
+        isCorrect
+      });
+    });
+
+    playerApi.receiveEvent('refresh', function() {
+      choiceElements.forEach(choice => choice.classList.remove('selected'));
+      generateExercise();
+    });
+  }
+
+  init();
+  generateExercise();
