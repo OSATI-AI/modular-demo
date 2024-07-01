@@ -19,20 +19,31 @@ script: |
     questionElement.innerText = "What is the gradient of the linear function shown in the figure?";
     plot_linear_function("image_placeholder", gradient, 0);
     playerApi.sendEvent('task_loaded', {});
+
+    const answerInput = document.createElement("input");
+    answerInput.className = 'input input-bordered w-full max-w-xs';
+    answerInput.id = "answerField";
+    const answerSpan = document.createElement("span");
+    const answerLabel = document.createElement("p");
+    answerLabel.innerHTML = "<b>Gradient: </b>";
+    answerSpan.append(answerLabel);
+    answerSpan.append(answerInput);
+    answerElement.append(answerSpan);
+
     return { gradient };
   }
 
   function init(){
 
     playerApi.receiveEvent('evaluate', function() {
-      const userInput = parseFloat(answerElement.value);
+      const userInput = parseInt(document.getElementById('answerField').value, 10);
       const isCorrect = userInput === gradient;
       playerApi.sendEvent('evaluationResult', { userInput, result: gradient, isCorrect });
     });
 
     playerApi.receiveEvent('refresh', function() {
       imagePlaceholder.innerHTML = '';
-      answerElement.value = '';
+      answerElement.innerHTML = '';
       generateExercise();
     });
 

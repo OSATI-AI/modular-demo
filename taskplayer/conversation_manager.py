@@ -9,9 +9,6 @@ class ConversationManager:
     def __init__(self, api_key, model_name='openai/gpt-4o', api_base='https://openrouter.ai/api/v1', language = "german"):
         self.llm = ChatOpenAI(model_name=model_name, openai_api_key=api_key, openai_api_base=api_base)
         self.language = language
-        self.context = ""
-        self.dialog = ''
-        self.last_student_response = ''
 
     def tutor_persona(self, language='german'):
         if language == 'german':
@@ -30,13 +27,18 @@ class ConversationManager:
                 questions and small tips until they find the solution themselves. You express yourself in a relaxed and colloquial manner
                 and use simple language in order to be on the same level as the student."""
         
-    def tutor_instruction(self, response_student, task_context, language='german'):
+    def tutor_instruction(self, response_student, task_context, action_log, language='german'):
         if language == 'german':
             return f"""
                 Der Schüler interagiert gerade mit einer digitalen Lernplattform und bearbeitet eine bestimmte Aufgabe. Du sollst ihn
                 dabei unterstützen, Fragen beantworten und Tipps geben und ihn Schritt für Schritt zur richtigen Lösung führen.
                 Hier sind die details zu der Aufgabe, die gerade bearbeitet wird:
                 {task_context} 
+
+                Hier ist eine chronologische Liste der Antworten, die der Schüler bisher ausprobiert hat. Nutzen Sie diese, um herauszufinden
+                um herauszufinden, welche Missverständnisse der Schüler haben könnte und um gezieltes Feedback und Unterstützung zu geben 
+                diese Missverständnisse zu überwinden, um das Thema zu verstehen und die Aufgabe zu lösen:
+                {action_log}
             
                 Übernimm die Rolle des beschriebenen KI-Tutors und formuliere die nächste Antwort des Tutors.
                 Versuche kurze, prägnante Sätze zu verwenden und gib immer nur eine Information auf einmal oder stelle eine Frage auf einmal. 
@@ -69,6 +71,11 @@ class ConversationManager:
                 support them, answer questions, give tips and guide them step by step to the correct solution.
                 Here are the details of the task they are currently working on:
                 {task_context} 
+
+                Here is a chronological list of answers the student tried out so far. Use these to figure out
+                what possible misunderstandings the student might have and to provided targeted feedback and support to 
+                overcome these misunderstanding to understand the topic and solve the exercise:
+                {action_log}
             
                 Take on the role of the AI tutor described and formulate the tutor's next answer.
                 Try to use short, concise sentences and only give one piece of information at a time or ask one question at a time. 
@@ -96,32 +103,16 @@ class ConversationManager:
                 TUTOR: 
             """
 
-    def set_context(self, context):
-        self.context = context
+    def get_response(self, user_message, dialog, context, action_log):
+        tutor_instruction = f'{self.tutor_persona(self.language)}\n {dialog}\n {self.tutor_instruction(user_message, context, action_log, self.language)}'
 
-    def add_student_response(self, response):
-        self.dialog += f'\n S: {response}'
-        self.last_student_response = response
 
-    def add_teacher_response(self, response):
-        self.dialog += f'\n T: {response}'
+        print(tutor_instruction)
 
-    def get_tutor_instruction(self):
-        return f'{self.tutor_persona(self.language)}\n {self.dialog}\n {self.tutor_instruction(self.last_student_response, self.context, self.language)}'
-
-    def get_response(self, user_message):
-        self.add_student_response(user_message)
-        
-        print(self.get_tutor_instruction())
-        
-        response = self.llm.invoke(self.get_tutor_instruction())
+        response = self.llm.invoke(tutor_instruction)
         response = response.content
-
-        print("Response: ", response)
-
         response_tutor = response.split("TUTOR:")[1].replace("**", "").replace("\"", "")
 
-        self.add_student_response(response_tutor)
         return response_tutor
 
 # Create an instance of the conversation manager

@@ -58,7 +58,6 @@ def index(request):
     # Structure tasks
     structured_tasks = structure_tasks(tasks, topics_lookup)
 
-    print(structured_tasks)
     return render(request, 'index.html', {'structured_tasks': structured_tasks})
 
 def load_task(request):
@@ -76,21 +75,23 @@ def load_task(request):
 
     return JsonResponse({'error': 'Task ID not provided'}, status=400)
 
-def set_task_context(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            print('Task Details:', data)
-            conversation_manager.set_context(data)
-            return JsonResponse({'status': 'success'})
-        except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
-
 @csrf_exempt
 def send_message(request):
     if request.method == 'POST':
         data = json.loads(request.body)
-        message = data.get('message', '')
-        response = conversation_manager.get_response(message)
-        return JsonResponse({'response': response})
+        chat_history = data.get('chatHistory', '')
+        task_context = data.get('taskContext', '')
+        user_message = data.get('message', '')
+        action_log = data.get('actionLog', '[No user interactions so far]')
+
+        # Print the chat history and task context
+        print("Chat History:\n", chat_history)
+        print("Task Context:\n", task_context)
+        print("Action Log:\n", action_log)
+
+        # Simulate a response from the tutor
+        tutor_response = conversation_manager.get_response(user_message, chat_history, task_context, action_log)
+
+        return JsonResponse({'response': tutor_response})
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)

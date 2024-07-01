@@ -80,63 +80,6 @@ body {
   background-color: #ecf0f1;
 }
 
-.chat-container {
-  width: 600px;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  border-left: 1px solid #ccc;
-  padding-left: 10px;
-}
-
-.chat-history {
-  flex-grow: 1;
-  overflow-y: auto;
-  margin-bottom: 10px;
-  border: 1px solid #ccc;
-  padding: 10px;
-  height: 400px;
-}
-
-.chat-input {
-  display: flex;
-}
-
-.chat-input input {
-  flex-grow: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-right: none;
-}
-
-.chat-input button {
-  padding: 10px;
-  border: 1px solid #ccc;
-  background-color: #007bff;
-  color: white;
-  cursor: pointer;
-}
-
-.chat-message.user {
-  color: blue;
-}
-
-.chat-message.bot {
-  color: green;
-}
-
-.spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border-left-color: #09f;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
 
 .button-container {
   margin-top: 20px;
@@ -159,4 +102,10 @@ button:hover {
 
 .layout_button {
   margin-top: 20px;
+}
+
+
+#task-container {
+  border: 5px solid green;
+  padding: 10px;
 }

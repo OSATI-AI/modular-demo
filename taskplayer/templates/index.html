@@ -7,6 +7,9 @@
     <title>Task Player Demo</title>
     <link rel="stylesheet" href="{% static 'styles/global.css' %}">
     <script defer src="//unpkg.com/mathlive"></script>
+    
+    <script async src="{% static 'chat-widget.js' %}"></script>
+    
     <script>
         function toggleVisibility(element) {
             var nextElement = element.nextElementSibling;
@@ -22,79 +25,6 @@
             }
         }
     </script>
-    <style>
-        #task-container {
-            border: 5px solid green;
-            padding: 10px;
-        }
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            border-left: 1px solid #ccc;
-            padding-left: 10px;
-        }
-        .chat-history {
-            flex-grow: 1;
-            overflow-y: auto;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            padding: 10px;
-            height: 400px;
-        }
-        .chat-input {
-            display: flex;
-        }
-        .chat-input input {
-            flex-grow: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-right: none;
-        }
-        .chat-input button {
-            padding: 10px;
-            border: 1px solid #ccc;
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-        }
-        .chat-message.user {
-            color: blue;
-        }
-        .chat-message.bot {
-            color: green;
-        }
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border-left-color: #09f;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .button-container {
-            margin-top: 20px;
-        }
-        button {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            background-color: #3498db;
-            color: #ffffff;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        .layout_button {
-            margin-top: 20px;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
@@ -139,19 +69,9 @@
             <h3>Content</h3>
             <div>
                 <div id="task-container"></div>
-                <p id="typing-indicator"></p>
                 <p id="evaluation-result"></p>
                 <button id="check-btn">Check</button>
                 <button id="refresh-btn">Refresh</button>
-            </div>
-        </div>
-
-        <div class="chat-container">
-            <h3>AI Tutor Chat</h3>
-            <div class="chat-history" id="chat-history"></div>
-            <div class="chat-input">
-                <input type="text" id="chat-input" placeholder="Type your message here..." />
-                <button id="chat-send-btn">Send</button>
             </div>
         </div>
     </div>
@@ -167,12 +87,17 @@
         let player_config = { externalScriptsPath: '{% static "scripts/" %}' }
         const player = new TaskPlayer('task-container', player_config);
 
+        let chatHistory = "";
+        let currentTaskContext = "[At the moment, there is no active task]";
+        let actionLog = "[No user interactions so far]";
+
         window.loadTask = function(taskId) {
             fetch(`/load_task/?task_id=${taskId}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.task && data.template) {
                         player.openTask(data.task, data.template);
+                        resetActionLog();
                     } else {
                         console.error('Error loading task:', data.error);
                     }
@@ -195,7 +120,8 @@
             });
             document.dispatchEvent(customEvent);
             document.getElementById('evaluation-result').innerText = "";
-            document.getElementById('typing-indicator').innerText = "";
+            requestTaskDetails();
+            resetActionLog();
         });
 
         function requestTaskDetails() {
@@ -205,22 +131,20 @@
             document.dispatchEvent(customEvent);
         }
 
-        document.addEventListener('input', (event) => {
-            const typingIndicator = document.getElementById('typing-indicator');
-            typingIndicator.innerText = 'typing...';
-            setTimeout(() => {
-                typingIndicator.innerText = '';
-            }, 1000);
-        });
-
-        document.addEventListener('choice_selected', (event) => {
-            const typingIndicator = document.getElementById('typing-indicator');
-            typingIndicator.innerText = `Selected Choice: ID - ${event.detail.id}, Content - ${event.detail.content}`;
-        });
+        function resetActionLog() {
+            actionLog = "[No user interactions so far]";
+        }
 
         document.addEventListener('evaluationResult', (event) => {
             const evaluationResult = document.getElementById('evaluation-result');
-            evaluationResult.innerText = `Evaluation Result: ${JSON.stringify(event.detail)}`;
+            const resultDetail = JSON.stringify(event.detail);
+            const user_answer = JSON.stringify(event.detail.userInput);
+            evaluationResult.innerText = `Evaluation Result: ${resultDetail}`;
+            if (actionLog === "[No user interactions so far]") {
+                actionLog = ` - The student tried the following answer: ${user_answer}`;
+            } else {
+                actionLog += `\n - The student tried the following answer: ${user_answer}`;
+            }
         });
 
         document.addEventListener('task_loaded', () => {
@@ -228,69 +152,42 @@
         });
 
         document.addEventListener('task_details', (event) => {
-            const taskDetails = event.detail;
-            fetch('/set_task_context/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify(taskDetails)
-            }).then(response => {
-                if (!response.ok) {
-                    console.error('Error sending task details:', response.statusText);
-                }
-            }).catch(error => {
-                console.error('Error sending task details:', error);
-            });
+            currentTaskContext = `Task Details: ${JSON.stringify(event.detail)}`;
         });
 
-        document.getElementById('chat-send-btn').addEventListener('click', () => {
-            const message = document.getElementById('chat-input').value;
-            if (message.trim() === '') return;
+        // Listen for the 'userMessage' event from the chat widget
+        window.addEventListener('userMessage', function(event) {
+            const userMessage = event.detail;
+            chatHistory += `S: ${userMessage}\n`;
 
-            const chatHistory = document.getElementById('chat-history');
-
-            // Add user message to chat history
-            const userMessage = document.createElement('div');
-            userMessage.className = 'chat-message user';
-            userMessage.innerText = message;
-            chatHistory.appendChild(userMessage);
-
-            // Add spinner
-            const spinner = document.createElement('div');
-            spinner.className = 'spinner';
-            chatHistory.appendChild(spinner);
-
-            // Send the message to the backend via AJAX
+            // Backend Call
+            // Send the message, chat history, task context, and action log to the backend via AJAX
             fetch('/send_message/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({ message: message })
+                body: JSON.stringify({ 
+                    chatHistory: chatHistory,
+                    taskContext: currentTaskContext,
+                    actionLog: actionLog,
+                    message: userMessage 
+                })
             })
             .then(response => response.json())
             .then(data => {
-                // Remove spinner
-                if (spinner.parentNode) {
-                    spinner.parentNode.removeChild(spinner);
-                }
-
-                // Add bot response to chat history
-                const botResponse = document.createElement('div');
-                botResponse.className = 'chat-message bot';
-                botResponse.innerText = data.response;
-                chatHistory.appendChild(botResponse);
-
-                // Scroll to the bottom of chat history
-                chatHistory.scrollTop = chatHistory.scrollHeight;
+                const tutorResponse = data.response;
+                chatHistory += `T: ${tutorResponse}\n`;
+                triggerApiResponse(tutorResponse);
             });
-
-            // Clear the input field
-            document.getElementById('chat-input').value = '';
         });
+
+        // Function to trigger the 'apiResponse' event
+        function triggerApiResponse(message) {
+            const event = new CustomEvent('apiResponse', { detail: message });
+            window.dispatchEvent(event);
+        }
 
         // Function to get CSRF token for AJAX POST requests
         function getCookie(name) {
