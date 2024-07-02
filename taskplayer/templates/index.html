@@ -7,9 +7,8 @@
     <title>Task Player Demo</title>
     <link rel="stylesheet" href="{% static 'styles/global.css' %}">
     <script defer src="//unpkg.com/mathlive"></script>
-    
     <script async src="{% static 'chat-widget.js' %}"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <script>
         function toggleVisibility(element) {
             var nextElement = element.nextElementSibling;
@@ -24,12 +23,44 @@
                 element.classList.add('collapsed');
             }
         }
+
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            if (menu.style.display === 'block') {
+                menu.style.display = 'none';
+            } else {
+                menu.style.display = 'block';
+            }
+        }
+
+        function setLanguage(language) {
+            localStorage.setItem('selectedLanguage', language);
+            window.location.href = `/?lang=${language}`;
+        }
+
+        function getLanguage() {
+            return localStorage.getItem('selectedLanguage') || 'english';
+        }
     </script>
 </head>
 <body>
+    <div class="header">
+        <h1>Task Player Demo</h1>
+        <button class="menu-button" onclick="toggleMenu()">☰</button>
+        <div id="menu" class="menu">
+            <div class="menu-header" id="settings-header"></div>
+            <div class="menu-item">
+                <div class="dropdown-label" id="language-label"></div>
+                <select id="language-select" onchange="setLanguage(this.value)">
+                    <option value="english">English</option>
+                    <option value="german">German</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="sidebar">
-            <h3>Sidebar</h3>
             <!-- Sidebar items will be added here by the Django view -->
             {% for level, key_ideas in structured_tasks.items %}
                 <div class="level">
@@ -66,12 +97,12 @@
         </div>
 
         <div class="content">
-            <h3>Content</h3>
             <div>
                 <div id="task-container"></div>
-                <p id="evaluation-result"></p>
-                <button id="check-btn">Check</button>
-                <button id="refresh-btn">Refresh</button>
+                <div style="margin-top: 20px;">
+                    <button id="check-btn">Check</button>
+                    <button id="refresh-btn">Refresh</button>
+                </div>
             </div>
         </div>
     </div>
@@ -92,12 +123,12 @@
         let actionLog = "[No user interactions so far]";
 
         window.loadTask = function(taskId) {
-            fetch(`/load_task/?task_id=${taskId}`)
+            fetch(`/load_task/?task_id=${taskId}&lang=${getLanguage()}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.task && data.template) {
                         player.openTask(data.task, data.template);
-                        resetActionLog();
+                        actionLog = "[No user interactions so far]";
                     } else {
                         console.error('Error loading task:', data.error);
                     }
@@ -115,14 +146,17 @@
         });
 
         document.getElementById('refresh-btn').addEventListener('click', () => {
+            refresh_task()
+        });
+
+        function refresh_task(){
             const customEvent = new CustomEvent('parentEvent', {
                 detail: { event: 'refresh' }
             });
             document.dispatchEvent(customEvent);
-            document.getElementById('evaluation-result').innerText = "";
             requestTaskDetails();
             resetActionLog();
-        });
+        }
 
         function requestTaskDetails() {
             const customEvent = new CustomEvent('parentEvent', {
@@ -139,7 +173,12 @@
             const evaluationResult = document.getElementById('evaluation-result');
             const resultDetail = JSON.stringify(event.detail);
             const user_answer = JSON.stringify(event.detail.userInput);
-            evaluationResult.innerText = `Evaluation Result: ${resultDetail}`;
+            if (event.detail.isCorrect) {
+                displaySuccessFeedback();
+                refresh_task()
+            } else {
+                displayErrorFeedback();
+            }
             if (actionLog === "[No user interactions so far]") {
                 actionLog = ` - The student tried the following answer: ${user_answer}`;
             } else {
@@ -147,12 +186,51 @@
             }
         });
 
+        function displaySuccessFeedback() {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            const messages = {
+                english: ["Great Job!", "Well Done!", "You Nailed It!", "Excellent!"],
+                german: ["Gute Arbeit!", "Gut gemacht!", "Du hast es geschafft!", "Ausgezeichnet!"]
+            };
+            const lang = getLanguage();
+            const message = messages[lang][Math.floor(Math.random() * messages[lang].length)];
+            const feedbackElement = document.createElement('div');
+            feedbackElement.className = 'success-feedback';
+            feedbackElement.innerText = message;
+            document.body.appendChild(feedbackElement);
+            setTimeout(() => {
+                feedbackElement.remove();
+            }, 3000);
+        }
+
+        function displayErrorFeedback() {
+        const messages = {
+            english: ["Try Again!", "Oops, not quite right!", "Not quite, try once more!"],
+            german: ["Versuche es erneut!", "Ups, nicht ganz richtig!", "Nicht ganz, versuche es noch einmal!"]
+        };
+        const lang = getLanguage();
+        const message = messages[lang][Math.floor(Math.random() * messages[lang].length)];
+        const feedbackElement = document.createElement('div');
+        feedbackElement.className = 'error-feedback';
+        feedbackElement.innerText = message;
+        document.body.appendChild(feedbackElement);
+        setTimeout(() => {
+            feedbackElement.remove();
+        }, 3000);
+    }
+
         document.addEventListener('task_loaded', () => {
             requestTaskDetails();
         });
 
         document.addEventListener('task_details', (event) => {
             currentTaskContext = `Task Details: ${JSON.stringify(event.detail)}`;
+            updateMenuHeaderAndLabel();
         });
 
         // Listen for the 'userMessage' event from the chat widget
@@ -172,7 +250,8 @@
                     chatHistory: chatHistory,
                     taskContext: currentTaskContext,
                     actionLog: actionLog,
-                    message: userMessage 
+                    message: userMessage, 
+                    language: getLanguage()
                 })
             })
             .then(response => response.json())
@@ -204,6 +283,25 @@
             }
             return cookieValue;
         }
+
+        function updateMenuHeaderAndLabel() {
+            const lang = getLanguage();
+            const settingsHeader = document.getElementById('settings-header');
+            const languageLabel = document.getElementById('language-label');
+
+            if (lang === 'german') {
+                settingsHeader.innerText = 'Einstellungen';
+                languageLabel.innerText = 'Sprache wählen';
+            } else {
+                settingsHeader.innerText = 'Settings';
+                languageLabel.innerText = 'Choose Language';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateMenuHeaderAndLabel();
+            document.getElementById('language-select').value = getLanguage();
+        });
     </script>
 </body>
 </html>

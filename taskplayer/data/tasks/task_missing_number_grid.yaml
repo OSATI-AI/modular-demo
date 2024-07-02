@@ -1,13 +1,24 @@
 task_id: "task_missing_number_grid"
 template_id: "template_figure_question_answer"
-title: "Missing Number (Grid)"
-description: "The student sees a 10x10 grid showing the numbers from 1 to 100. One of the grid cells is empty. The student has to find the missing number."
+title:
+  english: "Missing Number (Grid)"
+  german: "Fehlende Zahl (Raster)"
+description:
+  english: "The student sees a 10x10 grid showing the numbers from 1 to 100. One of the grid cells is empty. The student has to find the missing number."
+  german: "Der Schüler sieht ein 10x10 Raster, das die Zahlen von 1 bis 100 zeigt. Eine der Rasterzellen ist leer. Der Schüler muss die fehlende Zahl finden."
 topic_id: 15
 events:
   send: ["evaluationResult", "task_details", "task_loaded"]
   receive: ["evaluate", "refresh", "get_task_details"]
 external_scripts:
   - "missing_number_grid.js"
+text:
+  text_question:
+    english: "Which number is missing?"
+    german: "Welche Zahl fehlt?"
+  text_answer:
+    english: "Missing Number"
+    german: "Fehlende Zahl"
 script: |
   let answer;
   const { questionElement, imagePlaceholder, answerElement } = playerApi.callTemplateScript('createLayout', {});
@@ -17,13 +28,13 @@ script: |
       answer = Math.floor(Math.random() * 100) + 1;
     } while (answer === 0);
 
-    questionElement.innerText = "Which number is missing?";
+    questionElement.innerText = "{{text.text_question}}";
     const answerInput = document.createElement("input");
     answerInput.className = 'input input-bordered w-full max-w-xs';
     answerInput.id = "answerField";
     const answerSpan = document.createElement("span");
     const answerLabel = document.createElement("p");
-    answerLabel.innerHTML = "<b>Missing Number: </b>";
+    answerLabel.innerHTML = "<b>{{text.text_answer}}: </b>";
     answerSpan.append(answerLabel);
     answerSpan.append(answerInput);
     answerElement.append(answerSpan);

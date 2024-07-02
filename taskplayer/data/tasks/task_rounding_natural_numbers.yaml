@@ -1,11 +1,19 @@
 task_id: "task_rounding_natural_numbers"
 template_id: "template_question_answer"
-title: "Rounding Natural Numbers"
-description: "The student sees a number between 100 and 9999 and has to round it to the nearest hundred."
+title:
+  english: "Rounding Natural Numbers"
+  german: "Natürliche Zahlen runden"
+description:
+  english: "The student sees a number between 100 and 9999 and has to round it to the nearest hundred."
+  german: "Der Schüler sieht eine Zahl zwischen 100 und 9999 und muss sie auf die nächste Hunderterstelle runden."
 topic_id: 18
 events:
   send: ["evaluationResult", "task_details", "task_loaded"]
   receive: ["evaluate", "refresh", "get_task_details"]
+text:
+  text_question:
+    english: "Round to the nearest hundred."
+    german: "Runde auf die nächste Hunderterstelle."
 script: |
   let answer, number;
   const { questionElement, answerElement } = playerApi.callTemplateScript('createLayout', {});
@@ -22,7 +30,7 @@ script: |
     number = generateNumber();
     answer = Math.round(number / 100) * 100;
 
-    questionElement.innerText = "Round to the nearest hundred.";
+    questionElement.innerText = "{{text.text_question}}";
     const questionSpan = document.createElement("span");
     const mf = document.createElement("math-field");
     mf.readonly = true;

@@ -1,35 +1,58 @@
 task_id: "task_name_shapes"
 template_id: "template_multiple_choice"
-title: "Name Shapes"
-description: "The student is asked to identify a certain geometrical shape from a multiple-choice list of 3 items, each showing a different shape."
+title:
+  english: "Name Shapes"
+  german: "Formen bestimmen"
+description:
+  english: "The student is asked to identify a certain geometrical shape from a multiple-choice list of 3 items, each showing a different shape."
+  german: "Der Schüler wird gebeten, eine bestimmte geometrische Form aus einer Liste mit 3 verschiedenen Formen auszuwählen."
 topic_id: 12
 events:
   send: ["evaluationResult", "task_details", "task_loaded"]
   receive: ["evaluate", "refresh", "get_task_details"]
 external_scripts:
   - "shapes.js"
+text:
+  text_question:
+    english: "Which shape is"
+    german: "Welche Form ist"
+  text_triangle:
+    english: "a triangle"
+    german: "ein Dreieck"
+  text_rectangle:
+    english: "a rectangle"
+    german: "ein Rechteck"
+  text_quadrangle:
+    english: "a quadrangle"
+    german: "ein Viereck"
+  text_pentagon:
+    english: "a pentagon"
+    german: "ein Fünfeck"
+  text_ellipse:
+    english: "an ellipse"
+    german: "eine Ellipse"
 script: |
   let answer, selected;
   const NUM_CHOICES = 3;
   const shapes = {
     "triangle": {
-      "name": "a triangle",
+      "name": "{{text.text_triangle}}",
       "function": drawTriangle
     },
     "rectangle": {
-      "name": "a rectangle",
+      "name": "{{text.text_rectangle}}",
       "function": drawRectangle
     },
     "quadrangle": {
-      "name": "a quadrangle",
+      "name": "{{text.text_quadrangle}}",
       "function": drawQuadrangle
     },
     "pentagon": {
-      "name": "a pentagon",
+      "name": "{{text.text_pentagon}}",
       "function": drawPentagon
     },
     "ellipse": {
-      "name": "an ellipse",
+      "name": "{{text.text_ellipse}}",
       "function": drawEllipse
     }
   };
@@ -40,7 +63,7 @@ script: |
   function generateExercise() {
     selected = null;
     choiceElements.forEach(choice => choice.innerHTML = '');
-    
+
     const correctShape = Object.keys(shapes)[Math.floor(Math.random() * Object.keys(shapes).length)];
     const shapeChoices = [correctShape];
     for (let i = 0; i < NUM_CHOICES - 1; i++) {
@@ -55,7 +78,7 @@ script: |
     answer = shapeChoices.indexOf(correctShape);
     choices = shapeChoices.map(shape => shapes[shape].name);
 
-    questionElement.innerText = `Which shape is ${shapes[correctShape].name}?`;
+    questionElement.innerText = `{{text.text_question}} ${shapes[correctShape].name}?`;
 
     shapeChoices.forEach((shape, index) => {
       const choiceElement = choiceElements[index];

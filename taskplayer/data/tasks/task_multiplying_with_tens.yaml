@@ -1,11 +1,19 @@
 task_id: "task_multiplying_by_tens"
 template_id: "template_question_answer"
-title: "Multiplying by Tens"
-description: "The student sees a multiplication exercise where both numbers are multiples of 10. The student has to find the solution of the multiplication."
+title:
+  english: "Multiplying by Tens"
+  german: "Mit Zehnern multiplizieren"
+description:
+  english: "The student sees a multiplication exercise where both numbers are multiples of 10. The student has to find the solution of the multiplication."
+  german: "Der Schüler sieht eine Multiplikationsaufgabe, bei der beide Zahlen Vielfache von 10 sind. Der Schüler muss die Lösung der Multiplikation finden."
 topic_id: 17
 events:
   send: ["evaluationResult", "task_details", "task_loaded"]
   receive: ["evaluate", "refresh", "get_task_details"]
+text:
+  text_question:
+    english: "Multiply."
+    german: "Multipliziere."
 script: |
   let answer, n1, n2;
   const { questionElement, answerElement } = playerApi.callTemplateScript('createLayout', {});
@@ -17,7 +25,7 @@ script: |
     answer = n1 * n2;
     const equation = `${n1} \\cdot ${n2} = \\placeholder[answer]{}`;
 
-    questionElement.innerText = "Multiply.";
+    questionElement.innerText = "{{text.text_question}}";
     const answerField = document.createElement("math-field");
     answerField.id = "equation";
     answerField.className = 'w-48';

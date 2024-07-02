@@ -1,11 +1,19 @@
 task_id: "task_missing_number_gap"
 template_id: "template_question_answer"
-title: "Missing Number (Gap)"
-description: "The student sees a sequence of numbers that increase by 1 from left to right. One of the numbers is blanked out. The student has to fill in the missing number by checking the number on the left and on the right (or only the left and only the right if the missing number is the first or last number)."
+title:
+  english: "Missing Number (Gap)"
+  german: "Fehlende Zahl (Lücke)"
+description:
+  english: "The student sees a sequence of numbers that increase by 1 from left to right. One of the numbers is blanked out. The student has to fill in the missing number by checking the number on the left and on the right (or only the left and only the right if the missing number is the first or last number)."
+  german: "Der Schüler sieht eine Zahlenfolge, die von links nach rechts um 1 zunimmt. Eine der Zahlen ist ausgeblendet. Der Schüler muss die fehlende Zahl einfügen, indem er die Zahl links und rechts prüft (oder nur links und nur rechts, wenn die fehlende Zahl die erste oder letzte Zahl ist)."
 topic_id: 15
 events:
   send: ["evaluationResult", "task_details", "task_loaded"]
   receive: ["evaluate", "refresh", "get_task_details"]
+text:
+  text_question:
+    english: "Fill in the gap with the correct number."
+    german: "Fülle die Lücke mit der richtigen Zahl."
 script: |
   let answer, sequence;
   const { questionElement, answerElement } = playerApi.callTemplateScript('createLayout', {});
@@ -31,7 +39,7 @@ script: |
       }
     }
 
-    questionElement.innerText = "Fill in the gap with the correct number.";
+    questionElement.innerText = "{{text.text_question}}";
     const answerField = document.createElement("math-field");
     answerField.id = "answer_field";
     answerField.setValue(seqString);

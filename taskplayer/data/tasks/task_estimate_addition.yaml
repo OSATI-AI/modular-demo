@@ -1,11 +1,22 @@
 task_id: "task_estimate_addition"
 template_id: "template_multiple_choice"
-title: "Estimate Addition"
-description: "The student has to estimate the solution of an addition problem with two floating point numbers by rounding them and adding the rounded numbers together. This is a multiple choice exercise where only one choice is the correct answer."
+title:
+  english: "Estimate Addition"
+  german: "Schätze Addition"
+description:
+  english: "The student has to estimate the solution of an addition problem with two floating point numbers by rounding them and adding the rounded numbers together. This is a multiple choice exercise where only one choice is the correct answer."
+  german: "Der Schüler muss die Lösung eines Additionsproblems mit zwei Gleitkommazahlen schätzen, indem er sie aufrundet und die gerundeten Zahlen zusammenzählt. Dies ist eine Multiple-Choice-Aufgabe, bei der nur eine Wahl die richtige Antwort ist."
 topic_id: 18
 events:
   send: ["evaluationResult", "task_details", "task_loaded"]
   receive: ["evaluate", "refresh", "get_task_details"]
+text:
+  text_question:
+    english: "Estimate: "
+    german: "Schätze: "
+  text_no_choice:
+    english: "No choice selected"
+    german: "Keine Auswahl getroffen"
 script: |
   let num1, num2, answer, choices;
   const NUM_CHOICES = 4;
@@ -27,7 +38,7 @@ script: |
 
     choices.sort((a, b) => a - b);
     answer = choices.indexOf(correct);
-    questionElement.innerText = `Estimate: ${num1} + ${num2} = `;
+    questionElement.innerText = `{{text.text_question}} ${num1} + ${num2} = `;
     choices.forEach((choice, index) => {
       choiceElements[index].innerText = choice;
       choiceElements[index].onclick = () => selectChoice(index);
@@ -60,7 +71,7 @@ script: |
     playerApi.receiveEvent('evaluate', function() {
       const selectedChoiceElement = document.querySelector('.choice.selected');
       if (!selectedChoiceElement) {
-        playerApi.sendEvent('evaluationResult', { result: 'No choice selected' });
+        playerApi.sendEvent('evaluationResult', { result: '{{text.text_no_choice}}' });
         return;
       }
       const selectedId = Array.from(choiceElements).indexOf(selectedChoiceElement);

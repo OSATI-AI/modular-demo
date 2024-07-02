@@ -1,13 +1,24 @@
 task_id: "task_gradient"
 template_id: "template_figure_question_answer"
-title: "Linear Function Gradient Task"
-description: "This task requires the user to determine the gradient of a linear function. The user will see a graph of the function and an input field to enter the gradient."
+title:
+  english: "Linear Function Gradient Task"
+  german: "Steigung der linearen Funktion"
+description: 
+  english: "This task requires the user to determine the gradient of a linear function. The user will see a graph of the function and an input field to enter the gradient. The student only sees the graph and does not know the function. He should determine the gradient just by looking at the graph"
+  german: "Diese Aufgabe erfordert, dass der Benutzer die Steigung einer linearen Funktion bestimmt. Der Benutzer sieht einen Graphen der Funktion und ein Eingabefeld, um die Steigung einzugeben. Der Schüler sieht nur den Graphen und kennt die Funktion nicht. Er soll die Steigung allein durch Betrachten des Graphen bestimmen"
 topic_id: 23
 events:
   send: ["evaluationResult", "task_details", "task_loaded"]
   receive: ["evaluate", "refresh", "get_task_details"]
 external_scripts:
   - "figure.js"
+text:
+  text_question:
+    english: "What is the gradient of the linear function shown in the figure?"
+    german: "Was ist die Steigung der Funktion in der Abbildung?"
+  text_answer:
+    english: "Gradient"
+    german: "Steigung"
 script: |
   let gradient;
   const { questionElement, imagePlaceholder, answerElement } = playerApi.callTemplateScript('createLayout', {});
@@ -16,7 +27,7 @@ script: |
     do {
       gradient = Math.floor(Math.random() * 11) - 5;
     } while (gradient === 0);
-    questionElement.innerText = "What is the gradient of the linear function shown in the figure?";
+    questionElement.innerText = "{{text.text_question}}";
     plot_linear_function("image_placeholder", gradient, 0);
     playerApi.sendEvent('task_loaded', {});
 
@@ -25,7 +36,7 @@ script: |
     answerInput.id = "answerField";
     const answerSpan = document.createElement("span");
     const answerLabel = document.createElement("p");
-    answerLabel.innerHTML = "<b>Gradient: </b>";
+    answerLabel.innerHTML = "<b>{{text.text_answer}}: </b>";
     answerSpan.append(answerLabel);
     answerSpan.append(answerInput);
     answerElement.append(answerSpan);
@@ -49,7 +60,7 @@ script: |
 
     playerApi.receiveEvent('get_task_details', function() {
       const taskDetails = playerApi.getTaskDetails();
-      const dynamicDetails = `Current exercise: Determine the gradient of the linear function with gradient ${gradient}.`;
+      const dynamicDetails = `Current exercise: The figure shows a red line which is the graph of the function y=${gradient}x. Therefore the correct solution is ${gradient}.`;
       playerApi.sendEvent('task_details', {
         staticInfo: taskDetails.description,
         dynamicDetails: dynamicDetails
@@ -59,4 +70,3 @@ script: |
 
   init();  
   generateExercise();
-  

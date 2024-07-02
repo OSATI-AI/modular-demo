@@ -1,11 +1,19 @@
 task_id: "task_square_root"
 template_id: "template_question_answer"
-title: "Square Root"
-description: "The student sees a mathematical term in which they have to calculate the square root of a square number."
+title:
+  english: "Square Root"
+  german: "Quadratwurzel"
+description:
+  english: "The student sees a mathematical term in which they have to calculate the square root of a square number."
+  german: "Der Schüler sieht einen mathematischen Ausdruck, in dem er die Quadratwurzel einer quadratischen Zahl berechnen muss."
 topic_id: 32
 events:
   send: ["evaluationResult", "task_details", "task_loaded"]
   receive: ["evaluate", "refresh", "get_task_details"]
+text:
+  text_question:
+    english: "Find the square root."
+    german: "Bestimme die Quadratwurzel."
 script: |
   let answer;
   const { questionElement, answerElement } = playerApi.callTemplateScript('createLayout', {});
@@ -17,7 +25,7 @@ script: |
 
     const equation = `\\sqrt{${answer ** 2}} = \\placeholder[answer]{}`;
 
-    questionElement.innerText = "Find the square root.";
+    questionElement.innerText = "{{text.text_question}}";
     const answerField = document.createElement("math-field");
     answerField.id = "equation";
     answerField.className = 'w-48';
