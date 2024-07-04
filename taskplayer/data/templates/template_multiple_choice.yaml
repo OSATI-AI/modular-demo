@@ -1,6 +1,6 @@
 template_id: "template_multiple_choice"
 title: "Multiple Choice Template"
-description: "A template for multiple choice questions."
+description: "A template for multiple choice questions. It contains a question element and a arbitrary amount of multiple choice elements that can be filled with arbitrary content."
 events:
   send: ["choice_selected"]
   receive: ["refresh"]

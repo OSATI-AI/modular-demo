@@ -4,6 +4,7 @@ import yaml
 import os
 import json
 from .conversation_manager import conversation_manager
+from .generation_manager import generation_manager
 from django.views.decorators.csrf import csrf_exempt
 from jinja2 import Template
 
@@ -111,3 +112,56 @@ def send_message(request):
         return JsonResponse({'response': tutor_response})
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+def generate(request):
+    return render(request, 'generate.html')
+
+def load_templates(template_dir):
+    templates = {}
+    for template_file in os.listdir(template_dir):
+        if template_file.endswith('.yaml'):
+            with open(os.path.join(template_dir, template_file), 'r', encoding='utf-8') as file:
+                template = yaml.safe_load(file)
+                templates[template_file] = template.get('description', '')
+    return templates
+
+@csrf_exempt
+def generator_message(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        user_message = data.get('message')
+        task = data.get('task')       
+        dialog = data.get('dialog')
+        language = data.get('language')
+
+        print("\nDIALOG: ", dialog)
+        
+        templates = load_templates(template_dir)
+        template_file = generation_manager.get_template( user_message, dialog, templates)
+        template_file = template_file.replace(" ", "")
+
+        print("\n Selected Template: ", template_file)
+
+        with open(os.path.join(template_dir, template_file), 'r', encoding='utf-8') as file:
+            template = file.read()
+        message, task = generation_manager.get_response(user_message, dialog, task, template)
+        
+        try:
+            task = task.split("```yaml")[1][:-3]
+        except Exception as e:
+            print("\n\n\n\n ERROR: Could not split the task")
+            print("LLM OUTPUT: ")
+            print(task)
+            print("error message: ")
+            print(e)
+
+        task = fill_text(yaml.safe_load(task), language)
+
+        response = {
+            "message":message, 
+            "task":yaml.dump(task), 
+            "template":template
+        }
+
+        return JsonResponse(response)
+    return JsonResponse({"error": "Invalid request method."}, status=400)
