@@ -19,6 +19,11 @@
             }
         }
 
+        function navigateToTaskCollection() {
+            const lang = getLanguage();
+            window.location.href = `/?lang=${lang}`;
+        }
+
         function setLanguage(language) {
             localStorage.setItem('selectedLanguage', language);
         }
@@ -287,7 +292,10 @@
 <body>
     <div class="header">
         <h1>Task Generator</h1>
-        <button class="menu-button" onclick="toggleMenu()">☰</button>
+        <div>
+            <button class="menu-button" onclick="toggleMenu()">☰</button>
+            <button class="menu-button" onclick="navigateToTaskCollection()" id="task-collection-btn">Task Collection</button>
+        </div>
         <div id="menu" class="menu">
             <div class="menu-header" id="settings-header">Settings</div>
             <div class="menu-item">
@@ -305,7 +313,7 @@
                 <div id="chat_history"></div>
                 <div id="chat_input">
                     <input type="text" id="chatInput" placeholder="Type your message...">
-                    <button onclick="sendMessage()">Send</button>
+                    <button id = "btn-send">Send</button>
                 </div>
             </div>
         </div>
@@ -494,10 +502,38 @@
                 sendMessage();
             }
         });
-    
+
+        document.getElementById('btn-send').addEventListener('click', function(e){
+            sendMessage();
+        })
+        
+
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('language-select').value = getLanguage();
         });
+
+    function updateMenuHeaderAndLabel() {
+        const lang = getLanguage();
+        const settingsHeader = document.getElementById('settings-header');
+        const languageLabel = document.getElementById('language-label');
+        const taskCollectionButton = document.getElementById('task-collection-btn');
+
+        if (lang === 'german') {
+            settingsHeader.innerText = 'Einstellungen';
+            languageLabel.innerText = 'Sprache wählen';
+            taskCollectionButton.innerText = 'Aufgabensammlung';
+        } else {
+            settingsHeader.innerText = 'Settings';
+            languageLabel.innerText = 'Choose Language';
+            taskCollectionButton.innerText = 'Task Collection';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('language-select').value = getLanguage();
+        updateMenuHeaderAndLabel();
+    });
+
     </script>
 </body>
 </html>

@@ -41,12 +41,20 @@
         function getLanguage() {
             return localStorage.getItem('selectedLanguage') || 'english';
         }
+
+        function generateTask() {
+            const lang = getLanguage();
+            window.location.href = `/generate?lang=${lang}`;
+        }
     </script>
 </head>
 <body>
     <div class="header">
         <h1>Task Player Demo</h1>
-        <button class="menu-button" onclick="toggleMenu()">☰</button>
+        <div>
+            <button class="menu-button" onclick="toggleMenu()">☰</button>
+            <button class="menu-button" onclick="generateTask()" id="generate-btn">Generate</button>
+        </div>
         <div id="menu" class="menu">
             <div class="menu-header" id="settings-header"></div>
             <div class="menu-item">
@@ -209,20 +217,20 @@
         }
 
         function displayErrorFeedback() {
-        const messages = {
-            english: ["Try Again!", "Oops, not quite right!", "Not quite, try once more!"],
-            german: ["Versuche es erneut!", "Ups, nicht ganz richtig!", "Nicht ganz, versuche es noch einmal!"]
-        };
-        const lang = getLanguage();
-        const message = messages[lang][Math.floor(Math.random() * messages[lang].length)];
-        const feedbackElement = document.createElement('div');
-        feedbackElement.className = 'error-feedback';
-        feedbackElement.innerText = message;
-        document.body.appendChild(feedbackElement);
-        setTimeout(() => {
-            feedbackElement.remove();
-        }, 3000);
-    }
+            const messages = {
+                english: ["Try Again!", "Oops, not quite right!", "Not quite, try once more!"],
+                german: ["Versuche es erneut!", "Ups, nicht ganz richtig!", "Nicht ganz, versuche es noch einmal!"]
+            };
+            const lang = getLanguage();
+            const message = messages[lang][Math.floor(Math.random() * messages[lang].length)];
+            const feedbackElement = document.createElement('div');
+            feedbackElement.className = 'error-feedback';
+            feedbackElement.innerText = message;
+            document.body.appendChild(feedbackElement);
+            setTimeout(() => {
+                feedbackElement.remove();
+            }, 3000);
+        }
 
         document.addEventListener('task_loaded', () => {
             requestTaskDetails();
@@ -288,13 +296,16 @@
             const lang = getLanguage();
             const settingsHeader = document.getElementById('settings-header');
             const languageLabel = document.getElementById('language-label');
+            const generateButton = document.getElementById('generate-btn');
 
             if (lang === 'german') {
                 settingsHeader.innerText = 'Einstellungen';
                 languageLabel.innerText = 'Sprache wählen';
+                generateButton.innerText = 'Erstellen';
             } else {
                 settingsHeader.innerText = 'Settings';
                 languageLabel.innerText = 'Choose Language';
+                generateButton.innerText = 'Generate';
             }
         }
 

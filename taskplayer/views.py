@@ -7,9 +7,12 @@ from .conversation_manager import conversation_manager
 from .generation_manager import generation_manager
 from django.views.decorators.csrf import csrf_exempt
 from jinja2 import Template
+import re 
 
 tasks_dir = os.path.join(os.path.dirname(__file__), 'data/tasks')
 template_dir = os.path.join(os.path.dirname(__file__), 'data/templates')
+js_dir =  os.path.join(os.path.dirname(__file__), 'static/scripts')
+
 
 def load_tasks(tasks_dir, language):
     tasks = []
@@ -125,27 +128,62 @@ def load_templates(template_dir):
                 templates[template_file] = template.get('description', '')
     return templates
 
+def extract_description(file_content):
+    start_identifier = r'\*\*\* Function Description Start \*\*\*'
+    end_identifier = r'\*\*\* Function Description End \*\*\*'
+    
+    pattern = re.compile(f'{start_identifier}(.*?){end_identifier}', re.DOTALL)
+    match = pattern.search(file_content)
+    
+    if match:
+        description = match.group(1).strip()
+        return description
+    else:
+        return None
+
+def get_js_descriptions(path):
+    descriptions = {}
+    
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if file.endswith('.js'):
+                file_path = os.path.join(root, file)
+                with open(file_path, 'r') as js_file:
+                    content = js_file.read()
+                    description = extract_description(content)
+                    if description:
+                        descriptions[file] = description
+    
+    return descriptions
+
 @csrf_exempt
 def generator_message(request):
     if request.method == "POST":
+        # PARSE REQUEST
         data = json.loads(request.body)
         user_message = data.get('message')
         task = data.get('task')       
         dialog = data.get('dialog')
         language = data.get('language')
 
-        print("\nDIALOG: ", dialog)
-        
+        # PICK AND LOAD TEMPLATES 
         templates = load_templates(template_dir)
         template_file = generation_manager.get_template( user_message, dialog, templates)
         template_file = template_file.replace(" ", "")
+        print("\n\nTEMPLATE: ", template_file)
 
-        print("\n Selected Template: ", template_file)
 
+        # GET EXTERNAL JS FUNCTIONS
+        external_js = get_js_descriptions(js_dir)
+        
+        # GENERATE TASK CODE 
         with open(os.path.join(template_dir, template_file), 'r', encoding='utf-8') as file:
             template = file.read()
-        message, task = generation_manager.get_response(user_message, dialog, task, template)
+        message, task = generation_manager.get_response(user_message, dialog, task, template, external_js)
         
+        print("\n\nTASK: ", task)
+
+        # PARSE AND RETURN TASK CODE AND MESSAGE
         try:
             task = task.split("```yaml")[1][:-3]
         except Exception as e:

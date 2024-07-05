@@ -28,7 +28,13 @@ script: |
       gradient = Math.floor(Math.random() * 11) - 5;
     } while (gradient === 0);
     questionElement.innerText = "{{text.text_question}}";
-    plot_linear_function("image_placeholder", gradient, 0);
+
+    // Define the linear function based on the gradient
+    function linearFunction(x) {
+      return gradient * x;
+    }
+
+    plot_graph("image_placeholder", linearFunction, [-10, 10], [-10, 10]);
     playerApi.sendEvent('task_loaded', {});
 
     const answerInput = document.createElement("input");
@@ -44,8 +50,7 @@ script: |
     return { gradient };
   }
 
-  function init(){
-
+  function init() {
     playerApi.receiveEvent('evaluate', function() {
       const userInput = parseInt(document.getElementById('answerField').value, 10);
       const isCorrect = userInput === gradient;
@@ -68,5 +73,5 @@ script: |
     });
   }
 
-  init();  
+  init();
   generateExercise();

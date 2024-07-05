@@ -59,6 +59,10 @@
           scriptElement.src = `${this.config.externalScriptsPath || ''}${script}`;
           scriptElement.onload = resolve;
           scriptElement.onerror = reject;
+          
+          console.log("External script")
+          console.log(scriptElement.src )
+
           document.head.appendChild(scriptElement);
         });
       }));

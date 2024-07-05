@@ -99,6 +99,7 @@ class GenerationManager:
         events:
         send: ["evaluationResult", "task_details", "task_loaded"]
         receive: ["evaluate", "refresh", "get_task_details"]
+        external_scripts: null
         text:
         text_question:
             english: "Estimate: "
@@ -106,6 +107,7 @@ class GenerationManager:
         text_no_choice:
             english: "No choice selected"
             german: "Keine Auswahl getroffen"
+        
         script: |
         let num1, num2, answer, choices;
         const NUM_CHOICES = 4;
@@ -181,7 +183,24 @@ class GenerationManager:
         init();
         generateExercise();
 
+        You are allowed to use one or multiple javascript function from external scripts. For this
+        I will provide you a dictionary EXTERNAL_JS that contain the filenames of the scripts and a
+        description of the function that can be used from this script. If you decide to use such a function,
+        add the filename of the script to the "external_scripts:" 
+        field of the task yaml (or create the field if its not already in the yaml) and then you can just use
+        the function as explained in the description inside of the task script. 
+        Example: 
+        external_scripts:
+        - "figure.js"
         
+        Whenever you generate random numbers in the javascript code, make sure that the variables 
+        are really saved as numbers. Use functions like parseFloat or parseInt to ensure that.
+
+        Try to implement every task in a way, that we can have multiple exercises. Fore example by
+        randomly generating certain numbers or other aspects of the function. When doin this, 
+        always make sure to handle the refresh event correctly and generate new random details for the
+        task. Also make sure to update the correct result to ensure that the evaluate event is handled correctly.
+
         You always anser in a certain output format which is:
         MESSAGE: [Give a short answer to the previous user message in which you explain what you 
         just did and what changes you have added. But keep it short and simple and do not provide
@@ -194,11 +213,12 @@ class GenerationManager:
         format given by the template and the provided examples.  
         """
         
-    def instruction(self, user_message, dialog, task, template):
+    def instruction(self, user_message, dialog, task, template, external_js):
         return f"""
         Below you will get the previous user message, the entire dialog with the user so far,
         the current task code that should be modified (or [Empty] if there is no code so far) and
         the template, that should be used. 
+        EXTERNAL_JS: {external_js}
         DIALOG: {dialog}
         PREVIOUS USER MESSAGE: {user_message}
         TEMPLATE: {template}
@@ -220,9 +240,9 @@ class GenerationManager:
             LIST OF TEMPLATES: {templates}
         """
 
-    def get_response(self, user_message, dialog, task, template):
+    def get_response(self, user_message, dialog, task, template, external_js):
 
-        prompt = self.persona()+"\n"+self.instruction(user_message, dialog, task, template)
+        prompt = self.persona()+"\n"+self.instruction(user_message, dialog, task, template, external_js)
 
         response = self.llm.invoke(prompt)
         response = response.content
