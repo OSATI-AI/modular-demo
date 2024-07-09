@@ -5,24 +5,7 @@ import os
 
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
 
-class GenerationManager:
-    def __init__(self, api_key, model_name='openai/gpt-4o', api_base='https://openrouter.ai/api/v1'):
-        self.llm = ChatOpenAI(model_name=model_name, openai_api_key=api_key, openai_api_base=api_base)
-
-
-    def persona(self):
-        return """You are a helpfull AI assistant, designed to help teachers to design learning tasks
-        for their students. Your job is to listen to the description and requirements of the teacher
-        and create a task according to certain design rules. You will create a yaml object that contains
-        certain descriptive fields as well as javascript code that controlls the elements of the task.
-        The yaml also defines and handles certain events that manages communication with the application
-        that renders the task. A task is always connected to a certain template. The template defines 
-        the overall layout of the task and creates container elements. The task is only allow to work and
-        generate things inside these elements. Below, you can find a EXAMPLE_TEMPLATE and EXAMPLE_TASK.
-        Always stick to this framework and only use the fields as shown in the examples. 
-
-        EXAMPLE_TEMLALTE:
-        template_id: "template_multiple_choice"
+EXAMPLE_TEMPLATE = """template_id: "template_multiple_choice"
         title: "Multiple Choice Template"
         description: "A template for multiple choice questions."
         events:
@@ -84,10 +67,9 @@ class GenerationManager:
 
         playerApi.receiveEvent('refresh', function() {
             selectedChoice = null;
-        });
+        });"""
 
-        EXAMPLE_TASK:
-        task_id: "task_estimate_addition"
+EXAMPLE_TASK = """task_id: "task_estimate_addition"
         template_id: "template_multiple_choice"
         title:
         english: "Estimate Addition"
@@ -99,15 +81,13 @@ class GenerationManager:
         events:
         send: ["evaluationResult", "task_details", "task_loaded"]
         receive: ["evaluate", "refresh", "get_task_details"]
-        external_scripts: null
         text:
-        text_question:
-            english: "Estimate: "
-            german: "Schätze: "
-        text_no_choice:
-            english: "No choice selected"
-            german: "Keine Auswahl getroffen"
-        
+            text_question:
+                english: "Estimate: "
+                german: "Schätze: "
+            text_no_choice:
+                english: "No choice selected"
+                german: "Keine Auswahl getroffen"
         script: |
         let num1, num2, answer, choices;
         const NUM_CHOICES = 4;
@@ -181,18 +161,184 @@ class GenerationManager:
         }
 
         init();
-        generateExercise();
+        generateExercise();"""
 
-        You are allowed to use one or multiple javascript function from external scripts. For this
-        I will provide you a dictionary EXTERNAL_JS that contain the filenames of the scripts and a
-        description of the function that can be used from this script. If you decide to use such a function,
-        add the filename of the script to the "external_scripts:" 
-        field of the task yaml (or create the field if its not already in the yaml) and then you can just use
-        the function as explained in the description inside of the task script. 
-        Example: 
-        external_scripts:
-        - "figure.js"
+EXAMPLE_P5JS = """function drawGrid(sketch, xRange, yRange) {
+            sketch.stroke(200); // Light grey color for grid lines
+            sketch.strokeWeight(1);
+
+            // Draw vertical grid lines
+            for (let x = 0; x < sketch.width; x += sketch.width / (xRange[1] - xRange[0])) {
+                sketch.line(x, 0, x, sketch.height);
+            }
+
+            // Draw horizontal grid lines
+            for (let y = 0; y < sketch.height; y += sketch.height / (yRange[1] - yRange[0])) {
+                sketch.line(0, y, sketch.width, y);
+            }
+        }
+
+        function drawAxes(sketch) {
+            sketch.stroke(0); // Black color for axes
+            sketch.strokeWeight(3);
+            // Draw X axis
+            sketch.line(0, sketch.height / 2, sketch.width, sketch.height / 2);
+            // Draw Y axis
+            sketch.line(sketch.width / 2, 0, sketch.width / 2, sketch.height);
+        }
+
+        function drawFunction(sketch, func, xRange, yRange) {
+            sketch.stroke(255, 0, 0); // Red color for the function line
+            sketch.strokeWeight(2);
+            sketch.noFill();
+            sketch.beginShape();
+            for (let x = xRange[0]; x <= xRange[1]; x += 0.1) {
+                let y = func(x);
+                let canvasX = sketch.map(x, xRange[0], xRange[1], 0, sketch.width);
+                let canvasY = sketch.map(y, yRange[0], yRange[1], sketch.height, 0);
+                sketch.vertex(canvasX, canvasY);
+            }
+            sketch.endShape();
+        }
+
+        function plot_graph(container, func, xRange, yRange){
+            document.getElementById(container).innerHTML = ""
+            var s = function( sketch ) {
+                sketch.setup = function() {
+                    canvas = sketch.createCanvas(400, 400);
+                    canvas.parent(container);
+                    sketch.background(255);
+                    drawGrid(sketch, xRange, yRange);
+                    drawAxes(sketch);
+                    drawFunction(sketch, func, xRange, yRange);
+                };
+            };
+
+            new p5(s);
+        };"""
+
+class GenerationManager:
+    def __init__(self, api_key, model_name='openai/gpt-4o', api_base='https://openrouter.ai/api/v1'):
+        self.llm = ChatOpenAI(model_name=model_name, openai_api_key=api_key, openai_api_base=api_base)
+
+
+    def persona(self):
+        return """You are a helpfull AI assistant, designed to help teachers to design learning tasks
+        for their students. Your job is to listen to the description and requirements of the teacher
+        and create a task according to certain design rules."""
         
+
+    # analyses:
+    # {
+    #     task_description: Text
+    #     message: Text
+    #     existing_task: filename / "None"
+    #
+    #     // IF NOT EXISTING TASK:
+    #     template: filename
+    #     figure: True/False
+    #     existing_p5js: filename / "None"
+    #     figure_details: Text / "None"
+    # }
+
+    def prompt_analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions):
+        return f""" You will receive the user's message and the complete previous dialog which includes 
+        the description of the learning task that should be created. Work through the following steps and give your answer in json format.
+
+        PREVIOUS_MESSAGE: {user_message}
+        FULL_DIALOG: {dialog}
+
+        STEP 1:
+        Below you find a list of descriptions of tasks that already exists. Check all of them and decide,
+        if any of those tasks matches all of the requirements of the described task. If you found a task
+        that implements all features of what the user asked for, add the field "existing_task" to your
+        answer and give the name of the task as value. 
+        Example: 
+        "existing_task": "task_gradient.yaml"
+        If you found and existing task, add a field "message" to your answer as well and describe that 
+        found an existing task that could match the requirements, then ask if the user is happy with this
+        choice or if he/she wants to change someting. Do not mention the filename of the task, the user
+        will see the task in a preview window.If you found an existing task, you do not have to perform
+        any of the following steps, just give your answer in json format and include the "existing_task" 
+        and "message" fields. If you did not find a task that matches the requirements, set the value of "existing_task"
+        to "None" and continue with STEP 2.
+        IMPORTANT: If the given dialog shows, that you already found an existing task but the user wants to change 
+        something, set "existing_task" to "None" and proceed as if you did not found an existing task.
+        LIST OF EXISTING TASKS:
+        {existing_tasks}
+
+        STEP 2:
+        Select a template for this type of task that matches the requirements of the user.
+        You are only allowed to pick exactly one template out of the provided lists of templates and their description.
+        Add a field "template" to your answer and give the name of the template as value.
+        Example:
+        "template": "template_multiple_choice.yaml"
+        LIST OF TEMPLATES:
+        {templates}
+
+        STEP 3:
+        Analyse if the task requires to display a figure. This is only possible if the selected template
+        provide a container to display images/figures. Add a field "figure" to your answer and set its value
+        to "True" if a figure is required and to "False" if no figure is required.  
+        You are only allowed to use p5js for creating figures.
+        Below, there is a list of existing p5js functions with their according descriptions. Check each of them
+        and decide if any of them provides a figure that matches the requirements. Add a field "existing_p5js"
+        to your answers. If you found an existing function that you will use, give its filename as value, if not
+        give "None" as value.
+        Examples:
+        "existing_p5js":"figure.js"
+        "existing_p5js":"None"
+        Add a field "figure_details" to your answer. If there was an existing p5js function set the value of 
+        the field to "None". If no existing function matches the requirements, give a 
+        detailed description of how the function should be designed (no code yet) as value for the field. If you describe
+        how a new function should look like, I would like to create functions that are as general as possible
+        in order to reuse them later. So e.g. if the user wants a figure of a linear function, instead of describing
+        a p5js function that only can render linear functions, instead try to describe a function that can plot
+        any kind of mathematical function. 
+        LIST OF EXISTING P5JS FUNCTIONS:
+        {p5js_functions}
+
+        Now give your answer in json format and only use the fields as described in the steps above. 
+        Output format: ```json[YOUR ANSWER]```
+        """
+
+    def prompt_generate(self, user_message,dialog, template, example_task):
+
+        script = example_task["script"]
+        text = example_task["text"]
+        events = example_task["events"]
+
+        return f""" 
+        You will receive the user's message and the complete previous dialog which includes 
+        the description of the learning task that should be created. Work through the following steps and give your answer in json format.
+
+        PREVIOUS_MESSAGE: {user_message}
+        FULL_DIALOG: {dialog}
+
+        You will create a yaml object that contains certain descriptive fields as well as javascript code that controlls the elements of the task.
+        The yaml also defines and handles certain events that manages communication with the application
+        that renders the task. A task is always connected to a certain template. The template defines 
+        the overall layout of the task and creates container elements. The task is only allow to work and
+        generate things inside these elements. Below, you can find the code of the template that you have to use
+        an an EXAMPLE_TASK to show you how to use the framework. Always stick to this framework and only use the fields as shown in the examples. 
+
+        TEMPLATE:
+        {template}
+        
+        EXAMPLE_TASK:
+        "events": "```yaml{events}```"
+        "text":"```yaml{text}```"
+        "script":"```javascript{script}```"
+
+        Text elements can be referenced within the script by using double curly brackets:
+        Example: answerLabel.innerHTML = "<b>{{text.text_answer}}: </b>";
+
+        You are not supposed to handle feedback to the user. The only thing you have to take care is to handle the evaluation
+        event and return an object in the format: 
+        userInput: [INPUT OF THE USER]
+        result: [CORRECT ANSER]
+        isCorrect: [TRUE or FALSE]
+
         Whenever you generate random numbers in the javascript code, make sure that the variables 
         are really saved as numbers. Use functions like parseFloat or parseInt to ensure that.
 
@@ -201,62 +347,113 @@ class GenerationManager:
         always make sure to handle the refresh event correctly and generate new random details for the
         task. Also make sure to update the correct result to ensure that the evaluate event is handled correctly.
 
-        You always anser in a certain output format which is:
-        MESSAGE: [Give a short answer to the previous user message in which you explain what you 
+        Always try to implement the user request as accurately as possible, but always stick to
+        format given by the template and the provided examples. 
+        """
+
+    def prompt_generate_update(self, task, p5js=None):
+        script = task["script"]
+        text = task["text"]
+        events = task["events"]
+
+        #print("UPDATE P5JS: ", p5js)
+        
+        prompt = f"""Below I will provide the yaml file of an existing task. Use this code as a starting point update it
+        to implement the described task. 
+        CURRENT TASK:
+        "events": "```yaml{events}```"
+        "text":"```yaml{text}```"
+        "script":"```javascript{script}```"
+        """
+        if p5js is not None and p5js != "None": 
+            prompt += f"""
+            There is existing p5js code for the figure. If changes to the figure are required, 
+            use this code as a starting point and update it accordingly. If there are changes to 
+            the p5js code, always provide the full updated code (not just the changes). 
+            CURRENT P5JS CODE:
+            {p5js}
+            """
+
+        return prompt 
+
+    def prompt_output_format(self, update = False, p5js = False):
+        prompt = """You always answer in json format and use the following keys:
+        message: "[YOUR MESSAGE]" [Give a short answer to the previous user message in which you explain what you 
         just did and what changes you have added. But keep it short and simple and do not provide
         technical details like code. Just stick to what happend to the task layout or behavior.
-        Always answer in the same language as the user used in his/her last message.]
-        CODE: ```yaml[YOUR YAML CODE]```[Here you will write your yaml object for the task. Only provide a full yaml object 
-        here. Give no other text or code or explanations but just the complete yaml object.]
-        
-        Always try to implement the user request as accurately as possible, but always stick to
-        format given by the template and the provided examples.  
+        Always answer in english.]
+        events:"```yaml[YOUR EVENTS OBJECT]```"[Here you will creat a yaml object that contains all outgoing and incoming events that are handled in the script]
+        text:"```yaml[YOUR TEXT OBJECT]```"[Here you will specify all texts that are used in the script. Output a yaml object that contains english and german translations for every text element]
+        script:"```javascript[YOUR JAVASCRIPT CODE]```"[Here you will write your javascript code for the task. NEVER use comments on your javascript code!]
         """
+        if p5js:
+            prompt += """
+            p5js:"```javascript[YOUR Javascript CODE]```"[here you will provide any p5js javascript code 
+            for the figure. Stick to the provided example.]
+            """
         
-    def instruction(self, user_message, dialog, task, template, external_js):
-        return f"""
-        Below you will get the previous user message, the entire dialog with the user so far,
-        the current task code that should be modified (or [Empty] if there is no code so far) and
-        the template, that should be used. 
-        EXTERNAL_JS: {external_js}
-        DIALOG: {dialog}
-        PREVIOUS USER MESSAGE: {user_message}
-        TEMPLATE: {template}
-        TASK: {task}
+        if update:
+            prompt += """
+            Only give updated code for the fields that had changed. If a field e.g. text or script was not affected by your update,
+            just give "[NO_CHANGE]" as value. For example:
+            script: "[NO_CHANGE]"
+            """
+            if p5js:
+                prompt += """
+                Always try to change as less fields as possible. For example, if the users wants you to change the figure,
+                try to only update the p5js code and leave the script unchanged. Only if the change is not possible without
+                changing the script as well, provide updates to both fields.
+                """
+        
+        prompt += "\n Now give your answer in json format like ```json[YOUR ANSWER]```"
+
+
+        return prompt
+
+    def prompt_existing_p5js(self, function_description):
+        return f"""The task should contain a figure, that should be drawn using p5js. There is an existing
+        p5js function that you have to use. Do not provide any new p5js code but just call the given function
+        from inside your javascript code. You can assume that the function is available in the current context.
+        Here is a detailed description of the p5js function and how to use it:
+        {function_description}
         """
     
-    def instruction_template(self, user_message, dialog, templates):
-        return f"""
-            You will get a message from a user that wants to create a learning task for students.
-            You will receive the previous message as well as the full dialog so far. Your task is
-            to select a template for this type of task that matches the requirements of the user.
-            You are only allowed to pick exactly one template out of the provided lists of templates
-            and their description. You may only answer in this specific format:
-            TEMPLATE: [Filename of the tempalte you have choosen]
-            You are not allowed to provide any other text in your answer.
+    def prompt_new_p5js(self, figure_details):
+        return f"""The task should contain a figure, that should be drawn using p5js. You have to create
+        the p5js code to render the required figure. Here is a detailed description: 
+        {figure_details}
 
-            PREVIOUS_MESSAGE: {user_message}
-            DIALOG: {dialog}
-            LIST OF TEMPLATES: {templates}
+        I would like to create functions that are as general as possible
+        in order to reuse them later. So e.g. if the user wants a figure of a linear function, instead of describing
+        a p5js function that only can render linear functions, instead try to describe a function that can plot
+        any kind of mathematical function. Also make the p5js code as independent from the current task as possible.
+        You can create multiple functions to make the code more structured but make sure, that there is only one
+        function that will be called from the task code. You can assume that the p5js function will later be 
+        available to the task code, but not vice versa, so you are not allowed to use any variables or functions
+        from the task code inside your p5js code.  
+
+        When creating p5js code, stick to the following style, where a new p5js object is created 
+        inside the function and a parent element is given to set as the container p5js should render the figure into.
+        Example: 
+        {EXAMPLE_P5JS}
         """
 
-    def get_response(self, user_message, dialog, task, template, external_js):
+    def analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions):
+        prompt = self.persona()+"\n"+self.prompt_analyse(user_message,dialog, existing_tasks, templates, p5js_functions)
+        response = self.llm.invoke(prompt)
+        response = response.content
+        return response
 
-        prompt = self.persona()+"\n"+self.instruction(user_message, dialog, task, template, external_js)
+    def generate(self, prompt):
+        prompt = self.persona() + "\n" + prompt
+
+        # print("\n\n\n\n PROMPT: \n")
+        # print(prompt)
+        # print("\n\n\n")
 
         response = self.llm.invoke(prompt)
         response = response.content
-        message = response.split("MESSAGE:")[1].split("CODE:")[0]
-        code = response.split("CODE:")[1]
-
-        return message, code
-    
-    def get_template(self, user_message, dialog, templates):
-        prompt = self.instruction_template(user_message, dialog, templates)
-        response = self.llm.invoke(prompt)
-        response = response.content
-        template = response.split("TEMPLATE:")[1]
-        return template
+        return response
 
 # Create an instance of the conversation manager
 generation_manager = GenerationManager(api_key=OPENROUTER_API_KEY)

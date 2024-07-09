@@ -332,9 +332,10 @@
         const player_config = { externalScriptsPath: '{% static "scripts/" %}' }
         const player = new TaskPlayer('preview', player_config);
     
-        let dialog = "[empty]";
-        let currentTask = "[empty]";
-        let currentTemplate = "[empty]";
+        let dialog = "None";
+        let currentTask = "None";
+        let currentTemplate = "None";
+        let currentP5js = "None"
     
         document.getElementById('check-btn').addEventListener('click', () => {
             const customEvent = new CustomEvent('parentEvent', {
@@ -428,7 +429,7 @@
             chatHistory.scrollTop = chatHistory.scrollHeight;
     
             // Add to dialog
-            if (dialog == "[empty]") {
+            if (dialog == "None") {
                 dialog = ""
             }
             dialog += `user: ${message}\n`;
@@ -449,6 +450,7 @@
                     task: currentTask,
                     template: currentTemplate,
                     dialog: dialog,
+                    p5js: currentP5js, 
                     language: getLanguage() // Send selected language to the backend
                 })
             });
@@ -466,6 +468,13 @@
     
             // Add to dialog
             dialog += `assistant: ${data.message}\n`;
+            
+            if (data.p5js != "None"){}
+                var script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.textContent  = data.p5js  
+                document.head.appendChild(script);
+                currentP5js = data.p5js
     
             // Load the task into the player
             player.openTask(data.task, data.template);
@@ -473,7 +482,7 @@
             // Update current task and template
             currentTask = data.task;
             currentTemplate = data.template;
-    
+
             // Hide spinner and reset preview opacity
             preview.classList.remove('loading');
             spinner.style.display = 'none'; // Hide spinner
