@@ -16,32 +16,62 @@
         this.routeEvent(e.detail.event, e.detail.data);
       });
     }
-  
-    openTask(taskYaml, templateYaml) {
-      try {
-        this.task = jsyaml.load(taskYaml);
-        this.template = jsyaml.load(templateYaml);
-  
-        this.applyStyles(this.template.styles);
-        this.applyStyles(this.task.styles);
-  
-        if (this.task.external_scripts && this.task.external_scripts.length > 0) {
-          this.loadExternalScripts(this.task.external_scripts)
-            .then(() => {
-              this.renderTemplate();
-              this.executeTaskScript();
-            })
-            .catch(error => {
-              console.error('Error loading external scripts:', error);
-            });
-        } else {
-          this.renderTemplate();
-          this.executeTaskScript();
-        }
-      } catch (error) {
-        console.error('Error opening task:', error);
+
+    fillText(yamlObject, language) {
+      if (!yamlObject.text) {
+          return yamlObject;
       }
+  
+      const textData = yamlObject.text;
+      const context = {};
+  
+      for (const key in textData) {
+          if (textData.hasOwnProperty(key) && textData[key][language]) {
+              context[key] = textData[key][language];
+          }
+      }
+  
+      let yamlString = jsyaml.dump(yamlObject);
+      for (const key in context) {
+          const regex = new RegExp(`{{text.${key}}}`, 'g');
+          yamlString = yamlString.replace(regex, context[key]);
+      }
+  
+      return jsyaml.load(yamlString);
+      }
+  
+  
+      openTask(taskYaml, templateYaml, language ="english") {
+        try {
+            this.task = jsyaml.load(taskYaml);
+            this.template = jsyaml.load(templateYaml);
+
+            console.log(this.task)
+    
+            // Fill text based on the selected language
+            this.task = this.fillText(this.task, language);
+    
+            this.applyStyles(this.template.styles);
+            this.applyStyles(this.task.styles);
+    
+            if (this.task.external_scripts && this.task.external_scripts.length > 0) {
+                this.loadExternalScripts(this.task.external_scripts)
+                    .then(() => {
+                        this.renderTemplate();
+                        this.executeTaskScript();
+                    })
+                    .catch(error => {
+                        console.error('Error loading external scripts:', error);
+                    });
+            } else {
+                this.renderTemplate();
+                this.executeTaskScript();
+            }
+        } catch (error) {
+            console.error('Error opening task:', error);
+        }
     }
+    
   
     applyStyles(styles) {
       if (styles) {

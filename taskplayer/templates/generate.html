@@ -9,6 +9,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.14.0/js-yaml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/yaml/yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.14.0/js-yaml.min.js"></script>
+
     <script>
         function toggleMenu() {
             const menu = document.getElementById('menu');
@@ -32,8 +41,9 @@
             return localStorage.getItem('selectedLanguage') || 'english';
         }
     </script>
+
     <style>
-        * {
+                * {
             box-sizing: border-box;
         }
         body, html {
@@ -185,6 +195,14 @@
             color: black;
         }
 
+        .preview-wrapper {
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
         #preview {
             background-color: #f0f0f0;
             flex: 1;
@@ -192,6 +210,7 @@
             box-sizing: border-box;
             border-radius: 2px;
             position: relative;
+            height: 100%;
         }
 
         #spinner {
@@ -287,7 +306,43 @@
                 opacity: 0;
             }
         }
+        
+        .code-view {
+            height: 100%;
+            width: 100%;
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 2px;
+            overflow-y: auto;
+            white-space: pre;
+            font-family: monospace;
+            flex: 1;
+        }
+
+        #toggle-view-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            padding: 10px;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        #toggle-view-btn:hover {
+            background-color: #2980b9;
+        }
+
+        h3{
+            color: #2d2d2d; 
+        }
+
     </style>
+
 </head>
 <body>
     <div class="header">
@@ -318,7 +373,12 @@
             </div>
         </div>
         <div class="right-column">
-            <div id="preview"></div>
+            <div class="preview-wrapper">
+                <div id="preview"></div>
+                <button id="toggle-view-btn">
+                    <span id="toggle-icon">🔍</span>
+                </button>
+            </div>
             <div id="controls">
                 <button id="check-btn">Check</button>
                 <button id="refresh-btn">Refresh</button>
@@ -477,7 +537,7 @@
                 currentP5js = data.p5js
     
             // Load the task into the player
-            player.openTask(data.task, data.template);
+            player.openTask(data.task, data.template, getLanguage());
     
             // Update current task and template
             currentTask = data.task;
@@ -520,8 +580,105 @@
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('language-select').value = getLanguage();
         });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const previewContainer = document.getElementById('preview');
+            const toggleViewBtn = document.getElementById('toggle-view-btn');
+            const toggleIcon = document.getElementById('toggle-icon');
+            let isCodeView = false;
+            let textEditor, eventsEditor, scriptEditor;
 
-    function updateMenuHeaderAndLabel() {
+            function parseYaml(yamlString) {
+                try {
+                    return jsyaml.load(yamlString);
+                } catch (e) {
+                    console.error('Error parsing YAML:', e);
+                    return null;
+                }
+            }
+
+            function toYamlString(yamlObject) {
+                try {
+                    return jsyaml.dump(yamlObject);
+                } catch (e) {
+                    console.error('Error converting to YAML string:', e);
+                    return '';
+                }
+            }
+
+            toggleViewBtn.addEventListener('click', () => {
+                if (isCodeView) {
+                    // Collect the updated content from the editors
+                    const taskObject = parseYaml(currentTask);
+                    taskObject.text = parseYaml(textEditor.getValue());
+                    taskObject.events = parseYaml(eventsEditor.getValue());
+                    taskObject.script = scriptEditor.getValue();
+
+                    // Convert the updated task object back to a YAML string
+                    currentTask = toYamlString(taskObject);
+
+                    // Switch back to preview mode
+                    player.openTask(currentTask, currentTemplate, getLanguage());
+                    previewContainer.innerHTML = ''; // Clear the preview container
+                    previewContainer.classList.remove('code-view');
+                    toggleIcon.textContent = '🔍'; // Set to code icon
+                } else {
+                    // Switch to code view
+                    const taskObject = parseYaml(currentTask);
+                    previewContainer.innerHTML = ''; // Clear the preview container
+
+                    // Create separate editors for each field
+                    const textAreaText = document.createElement('textarea');
+                    const textAreaEvents = document.createElement('textarea');
+                    const textAreaScript = document.createElement('textarea');
+
+                    textAreaText.value = toYamlString(taskObject.text);
+                    textAreaEvents.value = toYamlString(taskObject.events);
+                    textAreaScript.value = taskObject.script;
+
+                    // Add headlines
+                    const labelText = document.createElement('h3');
+                    labelText.textContent = 'Text:';
+                    previewContainer.appendChild(labelText);
+                    previewContainer.appendChild(textAreaText);
+
+                    const labelEvents = document.createElement('h3');
+                    labelEvents.textContent = 'Events:';
+                    previewContainer.appendChild(labelEvents);
+                    previewContainer.appendChild(textAreaEvents);
+
+                    const labelScript = document.createElement('h3');
+                    labelScript.textContent = 'Script:';
+                    previewContainer.appendChild(labelScript);
+                    previewContainer.appendChild(textAreaScript);
+
+                    // Initialize CodeMirror editors
+                    textEditor = CodeMirror.fromTextArea(textAreaText, {
+                        mode: 'yaml',
+                        lineNumbers: true,
+                        theme: 'monokai',
+                    });
+
+                    eventsEditor = CodeMirror.fromTextArea(textAreaEvents, {
+                        mode: 'yaml',
+                        lineNumbers: true,
+                        theme: 'monokai',
+                    });
+
+                    scriptEditor = CodeMirror.fromTextArea(textAreaScript, {
+                        mode: 'javascript',
+                        lineNumbers: true,
+                        theme: 'monokai',
+                    });
+
+                    previewContainer.classList.add('code-view');
+                    toggleIcon.textContent = '📄'; // Set to preview icon
+                }
+                isCodeView = !isCodeView;
+            });
+        });
+
+        function updateMenuHeaderAndLabel() {
         const lang = getLanguage();
         const settingsHeader = document.getElementById('settings-header');
         const languageLabel = document.getElementById('language-label');

@@ -75,23 +75,6 @@ def index(request):
 
     return render(request, 'index.html', {'structured_tasks': structured_tasks, 'language': language})
 
-def fill_text(yaml_file, language):
-    # Convert YAML data to a string
-    template_str = yaml.dump(yaml_file)
-
-    # Create a Jinja2 template
-    template = Template(template_str)
-
-    # Prepare the context with the selected language
-    text_data = yaml_file["text"]
-    context = {key: value[language] for key, value in text_data.items()}
-
-    # Render the template with the context
-    rendered_str = template.render(text=context)
-
-    # Convert the rendered string back to a dictionary
-    return yaml.safe_load(rendered_str)
-
 def read_template(template_id):
     template_file = os.path.join(template_dir, template_id)
     with open(template_file, 'r') as file:
@@ -102,7 +85,6 @@ def read_task_and_template(task_id, language = "english"):
     task_file = os.path.join(tasks_dir, f'{task_id}')
     with open(task_file, 'r', encoding="utf-8") as file:
         task_yaml = yaml.safe_load(file)
-    task_yaml = fill_text(task_yaml, language)
     template_id = f'{task_yaml["template_id"]}.yaml'
     template_yaml = read_template(template_id)
     
@@ -321,7 +303,6 @@ def generator_message(request):
             if p5js_file != "None":
                 task_yaml["external_scripts"] = [p5js_file]
             task_yaml = yaml.safe_load(yaml.dump(task_yaml))
-            task_yaml = fill_text(task_yaml, language)
 
             if "p5js" in response:
                 p5js_code = response["p5js"]

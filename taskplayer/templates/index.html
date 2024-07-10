@@ -135,7 +135,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.task && data.template) {
-                        player.openTask(data.task, data.template);
+                        player.openTask(data.task, data.template, getLanguage());
                         actionLog = "[No user interactions so far]";
                     } else {
                         console.error('Error loading task:', data.error);
