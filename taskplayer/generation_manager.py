@@ -227,20 +227,6 @@ class GenerationManager:
         for their students. Your job is to listen to the description and requirements of the teacher
         and create a task according to certain design rules."""
         
-
-    # analyses:
-    # {
-    #     task_description: Text
-    #     message: Text
-    #     existing_task: filename / "None"
-    #
-    #     // IF NOT EXISTING TASK:
-    #     template: filename
-    #     figure: True/False
-    #     existing_p5js: filename / "None"
-    #     figure_details: Text / "None"
-    # }
-
     def prompt_analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions):
         return f""" You will receive the user's message and the complete previous dialog which includes 
         the description of the learning task that should be created. Work through the following steps and give your answer in json format.
@@ -307,6 +293,9 @@ class GenerationManager:
         script = example_task["script"]
         text = example_task["text"]
         events = example_task["events"]
+        title = example_task["title"]
+        description = example_task["description"]
+        task_id = example_task["task_id"]
 
         return f""" 
         You will receive the user's message and the complete previous dialog which includes 
@@ -329,6 +318,9 @@ class GenerationManager:
         "events": "```yaml{events}```"
         "text":"```yaml{text}```"
         "script":"```javascript{script}```"
+        "title": "```yaml{title}```"
+        "description": "```yaml{description}```"
+        "task_id": "{task_id}"
 
         Text elements can be referenced within the script by using double curly brackets:
         Example: answerLabel.innerHTML = "<b>{{text.text_answer}}: </b>";
@@ -383,8 +375,11 @@ class GenerationManager:
         technical details like code. Just stick to what happend to the task layout or behavior.
         Always answer in english.]
         events:"```yaml[YOUR EVENTS OBJECT]```"[Here you will creat a yaml object that contains all outgoing and incoming events that are handled in the script]
-        text:"```yaml[YOUR TEXT OBJECT]```"[Here you will specify all texts that are used in the script. Output a yaml object that contains english and german translations for every text element]
+        text:"```yaml[YOUR TEXT OBJECT]```"[Here you will specify all texts that are used in the script. Output a yaml object that contains english and german translations for every text element. For text that contains "you", always use the "Du" in the german translation instead of "Sie"]
         script:"```javascript[YOUR JAVASCRIPT CODE]```"[Here you will write your javascript code for the task. NEVER use comments on your javascript code!]
+        "title": "```yaml[YOUR TITLE]```"[Create a short title for the task. Add an english and german version]
+        "description": "```yaml[YOUR DESCRIPTION]```"[Create a brief description for the task. Add an english and german version]
+        "task_id": "[YOUR TASK ID]"[As task id use the english title, put task_ in front of it, make all characters lower case and replace all whitespaces with underscores]
         """
         if p5js:
             prompt += """
@@ -438,6 +433,21 @@ class GenerationManager:
         {EXAMPLE_P5JS}
         """
 
+    def prompt_topic_id(self, task_description, topics_lookup):
+        return f"""
+        Below you will receive a description of a learning task followed by a list of 
+        topics. Every topic has a title, as well as a level and key_idea it is assigned to.
+        Your task is to assign the described task to exactly one topic which is the best fit
+        for the task. Your answer should contain only a single number which represents the id of
+        the according topic. Do not add any additional text to your answer.
+
+        TASK_DESCRIPTION: 
+        {task_description}
+
+        TOPICS: 
+        {topics_lookup}
+        """
+
     def analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions):
         prompt = self.persona()+"\n"+self.prompt_analyse(user_message,dialog, existing_tasks, templates, p5js_functions)
         response = self.llm.invoke(prompt)
@@ -446,14 +456,18 @@ class GenerationManager:
 
     def generate(self, prompt):
         prompt = self.persona() + "\n" + prompt
-
-        # print("\n\n\n\n PROMPT: \n")
-        # print(prompt)
-        # print("\n\n\n")
-
         response = self.llm.invoke(prompt)
         response = response.content
         return response
 
+    def find_topic_id(self, task_description, topics_lookup):
+        prompt = self.prompt_topic_id(task_description, topics_lookup)
+
+        print(prompt)
+        
+        response = self.llm.invoke(prompt)
+        response = response.content
+        return response
+    
 # Create an instance of the conversation manager
 generation_manager = GenerationManager(api_key=OPENROUTER_API_KEY)

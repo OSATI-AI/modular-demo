@@ -13,7 +13,6 @@ tasks_dir = os.path.join(os.path.dirname(__file__), 'data/tasks')
 template_dir = os.path.join(os.path.dirname(__file__), 'data/templates')
 js_dir =  os.path.join(os.path.dirname(__file__), 'static/scripts')
 
-
 def load_tasks(tasks_dir):
     tasks = []
     task_files = []
@@ -289,17 +288,35 @@ def generator_message(request):
                     text = current_task["text"]
                 else:
                     text = yaml.safe_load(remove_code_identifier(response["text"]))
+                if response["title"] == "[NO_CHANGE]":
+                    title = current_task["title"]
+                else:
+                    title = yaml.safe_load(remove_code_identifier(response["title"]))
+                if response["description"] == "[NO_CHANGE]":
+                    description = current_task["description"]
+                else:
+                    description = yaml.safe_load(remove_code_identifier(response["description"]))
+                if response["task_id"] == "[NO_CHANGE]":
+                    task_id = current_task["task_id"]
+                else:
+                    task_id = response["task_id"]
             else:
                 script = remove_code_identifier(response["script"])
                 events = yaml.safe_load(remove_code_identifier(response["events"]))
                 text = yaml.safe_load(remove_code_identifier(response["text"]))
+                title = yaml.safe_load(remove_code_identifier(response["title"]))
+                description = yaml.safe_load(remove_code_identifier(response["description"]))
+                task_id =response["task_id"]
 
             task_yaml = {}
-            task_yaml["title"] = {"english": "blank", "german":"blank"}
-            task_yaml["description"] = {"english": "blank", "german":"blank"}
+            task_yaml["title"] = title
+            task_yaml["description"] = description
+            task_yaml["task_id"] = task_id
+            task_yaml["template_id"] = template_id[:-5]
             task_yaml["events"] = events
             task_yaml["text"] = text
             task_yaml["script"] = script
+            task_yaml["topic_id"] = 1
             if p5js_file != "None":
                 task_yaml["external_scripts"] = [p5js_file]
             task_yaml = yaml.safe_load(yaml.dump(task_yaml))
@@ -320,3 +337,37 @@ def generator_message(request):
 
         return JsonResponse(response)
     return JsonResponse({"error": "Invalid request method."}, status=400)
+
+
+@csrf_exempt
+def save_task(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        task_yaml = data.get('task', '')
+
+        if task_yaml:
+            task_dict = yaml.safe_load(task_yaml)
+            task_id = task_dict.get('task_id', 'untitled_task')
+            task_path = os.path.join(tasks_dir, f'{task_id}.yaml')
+
+            print("Finding Topic ID..")
+            with open(os.path.join(os.path.dirname(__file__), 'data/topics_lookup.yaml'), 'r', encoding='utf-8') as file:
+                topics_lookup = yaml.safe_load(file)
+            topic_id = generation_manager.find_topic_id(task_dict["description"]["english"], yaml.safe_dump(topics_lookup))
+            topic_id = int(topic_id)
+
+            print("Topic ID: ", topic_id)
+            topic = topics_lookup["topics"][topic_id]
+            print("LEVEL: ", topics_lookup["levels"][topic["level"]])
+            print("KEY IDEA: ", topics_lookup["key_ideas"][topic["key_idea"]])
+            print("TOPIC: ", topic["title"]["english"])
+            
+            task_dict["topic_id"] = topic_id
+
+            with open(task_path, 'w') as task_file:
+                yaml.dump(task_dict, task_file, default_flow_style=False)
+
+            return JsonResponse({'status': 'success', 'message': 'Task saved successfully.'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'No task data provided.'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
