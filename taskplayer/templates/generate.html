@@ -194,7 +194,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken') // Assuming CSRF token is named 'csrftoken'
                 },
-                body: JSON.stringify({ task: currentTask })
+                body: JSON.stringify({ task: currentTask, p5js:currentP5js })
             });
 
             // Hide spinner overlay
@@ -238,7 +238,6 @@
             }
         }
 
-    
         document.addEventListener('evaluationResult', (event) => {
             const evaluationResult = event.detail;
             if (evaluationResult.isCorrect) {
@@ -357,17 +356,16 @@
             // Add to dialog
             dialog += `assistant: ${data.message}\n`;
             
-            if (data.p5js != "None"){}
+            if (data.p5js != "None" && data.p5js != ""){
                 var script = document.createElement('script');
                 script.type = 'text/javascript';
                 script.textContent  = data.p5js  
                 document.head.appendChild(script);
                 currentP5js = data.p5js
-    
+            }
+            
             // Load the task into the player
             player.openTask(data.task, data.template, getLanguage());
-
-            console.log(data.task)
     
             // Update current task and template
             currentTask = data.task;
@@ -438,6 +436,8 @@
 
             toggleViewBtn.addEventListener('click', () => {
                 if (isCodeView) {
+                    previewContainer.innerHTML = ''; // Clear the preview container
+
                     // Collect the updated content from the editors
                     const taskObject = parseYaml(currentTask);
                     taskObject.text = parseYaml(textEditor.getValue());
@@ -447,9 +447,11 @@
                     // Convert the updated task object back to a YAML string
                     currentTask = toYamlString(taskObject);
 
+                    console.log(currentTask)
+
                     // Switch back to preview mode
                     player.openTask(currentTask, currentTemplate, getLanguage());
-                    previewContainer.innerHTML = ''; // Clear the preview container
+                    
                     previewContainer.classList.remove('code-view');
                     toggleIcon.textContent = '🔍'; // Set to code icon
                 } else {

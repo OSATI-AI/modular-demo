@@ -135,6 +135,16 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.task && data.template) {
+                        
+                        console.log("P5JS: ", data.p5js)
+
+                        if (data.p5js != "None" && data.p5js != ""){
+                            var script = document.createElement('script');
+                            script.type = 'text/javascript';
+                            script.textContent  = data.p5js  
+                            document.head.appendChild(script);
+                        }
+
                         player.openTask(data.task, data.template, getLanguage());
                         actionLog = "[No user interactions so far]";
                     } else {

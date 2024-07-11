@@ -163,7 +163,25 @@ EXAMPLE_TASK = """task_id: "task_estimate_addition"
         init();
         generateExercise();"""
 
-EXAMPLE_P5JS = """function drawGrid(sketch, xRange, yRange) {
+EXAMPLE_P5JS = """
+        /* 
+        *** Function Description Start ***
+        Description: 
+        The plot_graph function uses p5.js to plot any arbitrary mathematical function. It takes in the x and y range in which the function should be displayed and a callback function to determine the function term for the graph.
+
+        How to use:
+        1. Define a mathematical function as a callback.
+        2. Call the plot_graph function with the container ID, the callback function, and the x and y ranges.
+
+        Example:
+        function quadraticFunction(x) {
+            return x * x;
+        }
+
+        plot_graph('container', quadraticFunction, [-10, 10], [-10, 100]);
+        *** Function Description End ***
+        */
+        function drawGrid(sketch, xRange, yRange) {
             sketch.stroke(200); // Light grey color for grid lines
             sketch.strokeWeight(1);
 
@@ -431,6 +449,18 @@ class GenerationManager:
         inside the function and a parent element is given to set as the container p5js should render the figure into.
         Example: 
         {EXAMPLE_P5JS}
+
+        As you can see, the javascript code contains a small documentation as a comment on top of the code. Please 
+        also provide such a documentation in the same format as in the example. It is important to use the exact same
+        format including the marker that shows where the documentation starts and ends.
+        /* 
+        *** Function Description Start ***
+        [YOUR]
+        *** Function Description End ***
+        */
+        If your code contains multiple functions
+        you only should provide a documentation for the main function that can be called from other scripts. Provide a description
+        of what the fuctions does as well as a short example code on how to use it.
         """
 
     def prompt_topic_id(self, task_description, topics_lookup):
@@ -462,9 +492,6 @@ class GenerationManager:
 
     def find_topic_id(self, task_description, topics_lookup):
         prompt = self.prompt_topic_id(task_description, topics_lookup)
-
-        print(prompt)
-        
         response = self.llm.invoke(prompt)
         response = response.content
         return response

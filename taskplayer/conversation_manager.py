@@ -42,6 +42,11 @@ class ConversationManager:
                 um herauszufinden, welche Missverständnisse der Schüler haben könnte und um gezieltes Feedback und Unterstützung zu geben 
                 diese Missverständnisse zu überwinden, um das Thema zu verstehen und die Aufgabe zu lösen:
                 {action_log}
+
+                Wenn der Schüler bereits eine oder mehrere Antworten ausprobiert hat und nicht versteht, warum sie falsch war, wiederhole die letzte Antwort
+                des Schülers/der Schülerin und frage, wie er/sie auf diese Antwort gekommen ist. Lasse den Schüler seine Strategie erklären und versuche dann herauszufinden
+                welches Missverständnis oder welcher Fehler zu der falschen Antwort geführt hat. Erkläre dann die Aufgabe, die auf der falschen Antwort beruht, und
+                ermutige den Schüler, es noch einmal zu versuchen.
             
                 Übernimm die Rolle des beschriebenen KI-Tutors und formuliere die nächste Antwort des Tutors.
                 Versuche kurze, prägnante Sätze zu verwenden und gib immer nur eine Information auf einmal oder stelle eine Frage auf einmal. 
@@ -73,6 +78,8 @@ class ConversationManager:
                 - Ah vorsicht, hier hat sich ein kleiner Fehler eingeschlichen. Du hast ja grade richtig gesagt, dass wir hier abrunden müssen, was genau müssen dann mit der Zahl vor dem Komma machen?
                 - Nicht ganz, Du machst die Zahl beim Abrunden jetzt ums eins kleiner. Das funktioniert aber anders. Beim Aufrunden rechnen gehen wir zur nächsten größeren zahl, wir machen also die Zahl +1. Beim Abrunden machen wir aber nicht -1 sondern wir lassen die Zahl, so wie sie ist. Verstehst Du das?
                 - Ja super, so stimmt es jetzt. Die Richtige Schätzung ist also 65. Dann klicke jetzt die Auswahlmöglichkeit mit der 65 an und dann hast Du die Aufgabe gemeistert. Sehr gut gemacht!
+                - Deine letzte Antwort war 2, wie bist Du darauf gekommen?
+                - Du hast die Antwort 27 versucht, aber das ist leider nicht ganz richtig. Wie bist Du denn vorgegangen um auf 27 zu kommen?
 
                 Wichtig: 
                 Gebe niemals die Lösung zur Aufgabe heraus sondern helfe dem Schüler die Aufgabe selbst zu lösen. 
@@ -104,6 +111,11 @@ class ConversationManager:
                 overcome these misunderstanding to understand the topic and solve the exercise:
                 {action_log}
             
+                If the student already tried one or several answers and does not understand why it was wrong, repeat the last answer
+                of the student and ask how he/she came up with this answer. Let the student explain their strategy and then try to find out
+                what misunderstanding or mistake lead to the wrong answer. Then explain the problem based on the wrong answer and
+                encourage the student to try it again.  
+
                 Take on the role of the AI tutor described and formulate the tutor's next answer.
                 Try to use short, concise sentences and only give one piece of information at a time or ask one question at a time. 
                 Proceed step by step: 
@@ -131,6 +143,8 @@ class ConversationManager:
                 - Ah careful, a small mistake has crept in here. You just said correctly that we have to round down here, so what exactly do we have to do with the number before the decimal point?
                 - Not quite, you now make the number smaller by one when rounding down. But it works differently. When rounding up, we go to the next larger number, so we make the number +1. When rounding down, however, we do not make -1 but leave the number as it is. Do you understand that?
                 - Yes, great, that's right now. So the correct estimate is 65. Now click on the option with 65 and you've mastered the task. Very well done!
+                - Your last answer was 2, how did get there?
+                - You tried the answer 27 but thats not quite correct. Lets check this again, which steps did you do that lead you to 27?
 
                 Important: 
                 Never give out the solution to the task but help the student to solve the task themselves. 
@@ -149,9 +163,6 @@ class ConversationManager:
 
     def get_response(self, user_message, dialog, context, action_log, language = "english"):
         tutor_instruction = f'{self.tutor_persona(language)}\n {dialog}\n {self.tutor_instruction(user_message, context, action_log, language)}'
-
-
-        print(tutor_instruction)
 
         response = self.llm.invoke(tutor_instruction)
         response = response.content

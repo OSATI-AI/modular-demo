@@ -46,27 +46,14 @@
             this.task = jsyaml.load(taskYaml);
             this.template = jsyaml.load(templateYaml);
 
-            console.log(this.task)
-    
             // Fill text based on the selected language
             this.task = this.fillText(this.task, language);
     
             this.applyStyles(this.template.styles);
             this.applyStyles(this.task.styles);
-    
-            if (this.task.external_scripts && this.task.external_scripts.length > 0) {
-                this.loadExternalScripts(this.task.external_scripts)
-                    .then(() => {
-                        this.renderTemplate();
-                        this.executeTaskScript();
-                    })
-                    .catch(error => {
-                        console.error('Error loading external scripts:', error);
-                    });
-            } else {
-                this.renderTemplate();
-                this.executeTaskScript();
-            }
+
+            this.renderTemplate();
+            this.executeTaskScript();
         } catch (error) {
             console.error('Error opening task:', error);
         }
@@ -82,22 +69,7 @@
       }
     }
   
-    loadExternalScripts(scripts) {
-      return Promise.all(scripts.map(script => {
-        return new Promise((resolve, reject) => {
-          const scriptElement = document.createElement('script');
-          scriptElement.src = `${this.config.externalScriptsPath || ''}${script}`;
-          scriptElement.onload = resolve;
-          scriptElement.onerror = reject;
-          
-          console.log("External script")
-          console.log(scriptElement.src )
 
-          document.head.appendChild(scriptElement);
-        });
-      }));
-    }
-  
     renderTemplate() {
       try {
         this.container.innerHTML = this.template.html;

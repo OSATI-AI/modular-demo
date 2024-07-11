@@ -11,7 +11,7 @@ import re
 
 tasks_dir = os.path.join(os.path.dirname(__file__), 'data/tasks')
 template_dir = os.path.join(os.path.dirname(__file__), 'data/templates')
-js_dir =  os.path.join(os.path.dirname(__file__), 'static/scripts')
+js_dir =  os.path.join(os.path.dirname(__file__), 'data/scripts')
 
 def load_tasks(tasks_dir):
     tasks = []
@@ -92,9 +92,15 @@ def read_task_and_template(task_id, language = "english"):
 def load_task(request):
     task_id = request.GET.get('task_id')
     language = request.GET.get('lang', 'english')
+    js_code = ""
     if task_id:
         task_yaml, template_yaml = read_task_and_template(task_id, language)
-        return JsonResponse({'task': yaml.dump(task_yaml), 'template': yaml.dump(template_yaml)})
+        # load external p5js code
+        if "external_scripts" in task_yaml:
+            for script_file in task_yaml["external_scripts"]:
+                js_code += get_js_code(js_dir, script_file)
+            
+        return JsonResponse({'task': yaml.dump(task_yaml), 'template': yaml.dump(template_yaml), 'p5js':js_code})
 
     return JsonResponse({'error': 'Task ID not provided'}, status=400)
 
@@ -107,6 +113,12 @@ def send_message(request):
         user_message = data.get('message', '')
         action_log = data.get('actionLog', '[No user interactions so far]')
         language = data.get('language', 'english')
+
+        print("\n\n\n--------------------------------")
+        print("MESSAGE: ", user_message)
+        print("TASK CONTEXT: ", task_context)
+        print("ACTION LOG:", action_log)
+        print("--------------------------------\n\n\n")
 
         # Simulate a response from the tutor
         tutor_response = conversation_manager.get_response(user_message, chat_history, task_context, action_log, language)
@@ -222,6 +234,12 @@ def generator_message(request):
         if task_id != "None":
             task_yaml, template_yaml = read_task_and_template(task_id, language)
             message = task_analysis["message"]
+            if "external_scripts" in task_yaml:
+                p5js_code = ""
+                for script_file in task_yaml["external_scripts"]:
+                    p5js_code += get_js_code(js_dir, script_file)
+
+
         else:
             template_id = task_analysis["template"]
             template_yaml = read_template(template_id) 
@@ -237,14 +255,10 @@ def generator_message(request):
             # Optional Figure Prompt
             figure = task_analysis["figure"] == "True" or task_analysis["figure"] == True
             
-            # print("\n\n FIGURE: ", figure)
-            # print("task_analysis['figure']", task_analysis["figure"],"\n\n")
-
             if figure:
                 p5js_file = task_analysis["existing_p5js"]
                 if p5js_file != "None":
                     # Use existing p5js function
-                    #print("EXISTING P5JS")
                     function_description = p5js_functions[p5js_file]
                     p5js_code = get_js_code(js_dir, p5js_file)
                     prompt += generation_manager.prompt_existing_p5js(function_description)
@@ -317,9 +331,6 @@ def generator_message(request):
             task_yaml["text"] = text
             task_yaml["script"] = script
             task_yaml["topic_id"] = 1
-            if p5js_file != "None":
-                task_yaml["external_scripts"] = [p5js_file]
-            task_yaml = yaml.safe_load(yaml.dump(task_yaml))
 
             if "p5js" in response:
                 p5js_code = response["p5js"]
@@ -327,6 +338,11 @@ def generator_message(request):
                     p5js_code = current_p5js
                 else:
                     p5js_code = remove_code_identifier(p5js_code)
+
+            if p5js_file != "None":
+                task_yaml["external_scripts"] = [p5js_file]
+                p5js_code = get_js_code(js_dir, p5js_file)
+            task_yaml = yaml.safe_load(yaml.dump(task_yaml))
 
         response = {
             "message":message, 
@@ -344,30 +360,28 @@ def save_task(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         task_yaml = data.get('task', '')
+        p5js = data.get('p5js', 'None')
 
-        if task_yaml:
-            task_dict = yaml.safe_load(task_yaml)
-            task_id = task_dict.get('task_id', 'untitled_task')
-            task_path = os.path.join(tasks_dir, f'{task_id}.yaml')
+        task_dict = yaml.safe_load(task_yaml)
 
-            print("Finding Topic ID..")
-            with open(os.path.join(os.path.dirname(__file__), 'data/topics_lookup.yaml'), 'r', encoding='utf-8') as file:
-                topics_lookup = yaml.safe_load(file)
-            topic_id = generation_manager.find_topic_id(task_dict["description"]["english"], yaml.safe_dump(topics_lookup))
-            topic_id = int(topic_id)
+        # if new p5js was generated, save it to a js file
+        if p5js != 'None' and "external_scripts" not in task_dict:
+            filename = "script_"+str(len(os.listdir(js_dir)))+".js"
+            with open(os.path.join(js_dir, filename), "w") as file:
+                file.write(p5js)
+            task_dict["external_scripts"] = [filename]
 
-            print("Topic ID: ", topic_id)
-            topic = topics_lookup["topics"][topic_id]
-            print("LEVEL: ", topics_lookup["levels"][topic["level"]])
-            print("KEY IDEA: ", topics_lookup["key_ideas"][topic["key_idea"]])
-            print("TOPIC: ", topic["title"]["english"])
-            
-            task_dict["topic_id"] = topic_id
+        # find topic id and save task
+        task_id = task_dict.get('task_id', 'untitled_task')
+        task_path = os.path.join(tasks_dir, f'{task_id}.yaml')
+        with open(os.path.join(os.path.dirname(__file__), 'data/topics_lookup.yaml'), 'r', encoding='utf-8') as file:
+            topics_lookup = yaml.safe_load(file)
+        topic_id = generation_manager.find_topic_id(task_dict["description"]["english"], yaml.safe_dump(topics_lookup))
+        topic_id = int(topic_id)
+        task_dict["topic_id"] = topic_id
 
-            with open(task_path, 'w') as task_file:
-                yaml.dump(task_dict, task_file, default_flow_style=False)
+        with open(task_path, 'w') as task_file:
+            yaml.dump(task_dict, task_file, default_flow_style=False)
 
-            return JsonResponse({'status': 'success', 'message': 'Task saved successfully.'})
-        else:
-            return JsonResponse({'status': 'error', 'message': 'No task data provided.'})
+        return JsonResponse({'status': 'success', 'message': 'Task saved successfully.'})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
