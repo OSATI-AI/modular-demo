@@ -4,6 +4,7 @@
 import os
 import json
 from openai import OpenAI
+import time
 
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
 
@@ -478,8 +479,9 @@ class GenerationManager:
     def analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions):
         prompt = self.persona()+"\n"+self.prompt_analyse(user_message,dialog, existing_tasks, templates, p5js_functions)
         
+        start = time.time()
         response = self.client.chat.completions.create(
-            model="gpt-4o",
+            model=self.model,
             messages=[
                 {"role": "user", "content": prompt}
             ],
@@ -515,16 +517,27 @@ class GenerationManager:
             ],
             function_call={"name": "create_json"}
         )
+        response_time = round(time.time()-start,3)
+
+        input_token = response.usage.prompt_tokens
+        output_token = response.usage.completion_tokens
+
+        print("\n\n\n------------------------\n")
+        print("ANALYSIS")
+        print("   - Time: ", response_time, "s")
+        print("   - Input Token: ", input_token)
+        print("   - Output Token: ", output_token)
+        print("\n------------------------\\n\n\n")
         
         obj_str = response.choices[0].message.function_call.arguments
         obj = json.loads(obj_str)
-        print("\n\n\n##########n", obj)
         return obj
 
     def generate(self, prompt):
         prompt = self.persona() + "\n" + prompt
+        start = time.time()
         response = self.client.chat.completions.create(
-        model="gpt-4o",
+        model=self.model,
         messages=[
             {"role": "user", "content": prompt}
         ],
@@ -565,18 +578,26 @@ class GenerationManager:
         ],
         function_call={"name": "create_json"}
         )
+        response_time = round(time.time()-start,3)
+
+        input_token = response.usage.prompt_tokens
+        output_token = response.usage.completion_tokens
+
+        print("\n\n\n------------------------\n")
+        print("GENERATE")
+        print("   - Time: ", response_time, "s")
+        print("   - Input Token: ", input_token)
+        print("   - Output Token: ", output_token)
+        print("\n------------------------\\n\n\n")
     
         obj_str = response.choices[0].message.function_call.arguments
         obj = json.loads(obj_str)
-
-        print("\n\n\n##########n", obj)
-
         return obj
     
     def find_topic_id(self, task_description, topics_lookup):
         prompt = self.prompt_topic_id(task_description, topics_lookup)
         response = self.client.chat.completions.create(
-            model="gpt-4o",
+            model=self.model,
             messages=[
                 {"role": "user", "content": prompt}
             ],
