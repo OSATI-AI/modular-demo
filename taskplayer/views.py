@@ -114,12 +114,6 @@ def send_message(request):
         action_log = data.get('actionLog', '[No user interactions so far]')
         language = data.get('language', 'english')
 
-        print("\n\n\n--------------------------------")
-        print("MESSAGE: ", user_message)
-        print("TASK CONTEXT: ", task_context)
-        print("ACTION LOG:", action_log)
-        print("--------------------------------\n\n\n")
-
         # Simulate a response from the tutor
         tutor_response = conversation_manager.get_response(user_message, chat_history, task_context, action_log, language)
 
@@ -203,8 +197,8 @@ def generator_message(request):
 
         bool_generate_p5js = False
         bool_update = False
-        p5js_code = "None"
-        p5js_file = "None"
+        p5js_code = None
+        p5js_file = None
 
         # GET EXISTING TASK DESCRIPTIONS
         existing_tasks = load_task_description(tasks_dir)
@@ -217,21 +211,8 @@ def generator_message(request):
         
         # TEST
         task_analysis = generation_manager.analyse(user_message,dialog, existing_tasks, templates, p5js_functions)
-        if "```json" in task_analysis:
-            task_analysis = task_analysis.split("```json")[1][:-3]
-        try:
-            task_analysis = json.loads(task_analysis)
-        except Exception as e:
-            print("\n\n ERROR PARSING ANALYSIS AS JSON")
-            print("JSON CONTENT: \n")
-            print(task_analysis)
-            print("\n Error: \n", e)
-
-
-        #print("\n\n\n---------------ANALYSIS---------------: \n", task_analysis, "\n------------------------------\n\n\n")
-
         task_id = task_analysis["existing_task"]
-        if task_id != "None":
+        if task_id:
             task_yaml, template_yaml = read_task_and_template(task_id, language)
             message = task_analysis["message"]
             if "external_scripts" in task_yaml:
@@ -253,18 +234,15 @@ def generator_message(request):
             prompt = generation_manager.prompt_generate(user_message,dialog,yaml.dump(template_yaml),example_task)
 
             # Optional Figure Prompt
-            figure = task_analysis["figure"] == "True" or task_analysis["figure"] == True
-            
-            if figure:
+            if task_analysis["figure"]:
                 p5js_file = task_analysis["existing_p5js"]
-                if p5js_file != "None":
+                if p5js_file:
                     # Use existing p5js function
                     function_description = p5js_functions[p5js_file]
                     p5js_code = get_js_code(js_dir, p5js_file)
                     prompt += generation_manager.prompt_existing_p5js(function_description)
                 else:
                     # Generate new p5js function
-                    #print("NEW P5JS")
                     figure_details = task_analysis["figure_details"]
                     prompt += generation_manager.prompt_new_p5js(figure_details)
                     bool_generate_p5js = True
@@ -273,53 +251,43 @@ def generator_message(request):
             if current_task != "None":
                 prompt += generation_manager.prompt_generate_update(yaml.safe_load(current_task), current_p5js)
                 bool_update = True
-
-            #print("bool_update: ", bool_update)
-
             prompt += generation_manager.prompt_output_format(bool_update, bool_generate_p5js)
             response = generation_manager.generate(prompt)
-            response = remove_code_identifier(response)
-            
-            print("response: \n\n", response)
-
-            response = json.loads(response, strict=False)
-            
-            #print("\n\n\n---------------RESPONSE---------------: \n", response, "\n------------------------------\n\n\n")
-            
+   
             message = response["message"]
 
             if bool_update:
                 current_task = yaml.safe_load(current_task)
-                if response["script"] == "[NO_CHANGE]":
+                if response["script"] is None:
                     script = current_task["script"]
                 else:
-                    script = remove_code_identifier(response["script"])
-                if response["events"] == "[NO_CHANGE]":
+                    script = response["script"]
+                if response["events"]  is None:
                     events = current_task["events"]
                 else:
-                    events = yaml.safe_load(remove_code_identifier(response["events"]))
-                if response["text"] == "[NO_CHANGE]":
+                    events = response["events"]
+                if response["text"]  is None:
                     text = current_task["text"]
                 else:
-                    text = yaml.safe_load(remove_code_identifier(response["text"]))
-                if response["title"] == "[NO_CHANGE]":
+                    text = response["text"]
+                if response["title"] is None:
                     title = current_task["title"]
                 else:
-                    title = yaml.safe_load(remove_code_identifier(response["title"]))
-                if response["description"] == "[NO_CHANGE]":
+                    title = response["title"]
+                if response["description"]  is None:
                     description = current_task["description"]
                 else:
-                    description = yaml.safe_load(remove_code_identifier(response["description"]))
-                if response["task_id"] == "[NO_CHANGE]":
+                    description = response["description"]
+                if response["task_id"] is None:
                     task_id = current_task["task_id"]
                 else:
                     task_id = response["task_id"]
             else:
-                script = remove_code_identifier(response["script"])
-                events = yaml.safe_load(remove_code_identifier(response["events"]))
-                text = yaml.safe_load(remove_code_identifier(response["text"]))
-                title = yaml.safe_load(remove_code_identifier(response["title"]))
-                description = yaml.safe_load(remove_code_identifier(response["description"]))
+                script = response["script"]
+                events = response["events"]
+                text = response["text"]
+                title = response["title"]
+                description = response["description"]
                 task_id =response["task_id"]
 
             task_yaml = {}
@@ -334,12 +302,12 @@ def generator_message(request):
 
             if "p5js" in response:
                 p5js_code = response["p5js"]
-                if p5js_code == "[NO_CHANGE]":
+                if p5js_code is None:
                     p5js_code = current_p5js
                 else:
-                    p5js_code = remove_code_identifier(p5js_code)
+                    p5js_code = p5js_code
 
-            if p5js_file != "None":
+            if p5js_file:
                 task_yaml["external_scripts"] = [p5js_file]
                 p5js_code = get_js_code(js_dir, p5js_file)
             task_yaml = yaml.safe_load(yaml.dump(task_yaml))
@@ -377,7 +345,6 @@ def save_task(request):
         with open(os.path.join(os.path.dirname(__file__), 'data/topics_lookup.yaml'), 'r', encoding='utf-8') as file:
             topics_lookup = yaml.safe_load(file)
         topic_id = generation_manager.find_topic_id(task_dict["description"]["english"], yaml.safe_dump(topics_lookup))
-        topic_id = int(topic_id)
         task_dict["topic_id"] = topic_id
 
         with open(task_path, 'w') as task_file:

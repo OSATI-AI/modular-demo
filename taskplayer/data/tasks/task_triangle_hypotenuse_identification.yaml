@@ -1,0 +1,52 @@
+description:
+  english: In this task, students need to identify the hypotenuse of a right-angled
+    triangle with sides labeled A, B, and C. The figure of the triangle is displayed,
+    and students must enter their answer in the provided input field.
+  german: "In dieser Aufgabe m\xFCssen die Sch\xFCler die Hypotenuse eines rechtwinkligen\
+    \ Dreiecks mit den Seiten A, B und C identifizieren. Die Abbildung des Dreiecks\
+    \ wird angezeigt, und die Sch\xFCler m\xFCssen ihre Antwort in das bereitgestellte\
+    \ Eingabefeld eingeben."
+events:
+  receive:
+  - evaluate
+  - refresh
+  - get_task_details
+  send:
+  - evaluationResult
+  - task_details
+  - task_loaded
+external_scripts:
+- script_3.js
+script: "const { questionElement, imagePlaceholder, answerElement } = playerApi.callTemplateScript('createLayout',\
+  \ {});\n\nfunction generateExercise() {\n  questionElement.innerText = \"{{text.text_question}}\"\
+  ;\n\n  plot_triangle('image_placeholder');\n  playerApi.sendEvent('task_loaded',\
+  \ {});\n\n  const answerInput = document.createElement(\"input\");\n  answerInput.className\
+  \ = 'input input-bordered w-full max-w-xs';\n  answerInput.id = \"answerField\"\
+  ;\n  const answerSpan = document.createElement(\"span\");\n  const answerLabel =\
+  \ document.createElement(\"p\");\n  answerLabel.innerHTML = \"<b>{{text.text_answer}}:\
+  \ </b>\";\n  answerSpan.append(answerLabel);\n  answerSpan.append(answerInput);\n\
+  \  answerElement.append(answerSpan);\n\n  return { correctAnswer: 'C' };\n}\n\n\
+  function init() {\n  let correctAnswer = generateExercise().correctAnswer;\n\n \
+  \ playerApi.receiveEvent('evaluate', function() {\n    const userInput = document.getElementById('answerField').value.trim().toUpperCase();\n\
+  \    const isCorrect = userInput === correctAnswer;\n    playerApi.sendEvent('evaluationResult',\
+  \ { userInput, result: correctAnswer, isCorrect });\n  });\n\n  playerApi.receiveEvent('refresh',\
+  \ function() {\n    imagePlaceholder.innerHTML = '';\n    answerElement.innerHTML\
+  \ = '';\n    correctAnswer = generateExercise().correctAnswer;\n  });\n\n  playerApi.receiveEvent('get_task_details',\
+  \ function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails\
+  \ = `In this task, a right triangle is shown with sides labeled A, B, and C. The\
+  \ hypotenuse is side C.`;\n    playerApi.sendEvent('task_details', {\n      staticInfo:\
+  \ taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n\
+  }\n\ninit();\n"
+task_id: task_triangle_hypotenuse_identification
+template_id: template_figure_question_answer
+text:
+  text_answer:
+    english: Hypotenuse
+    german: Hypotenuse
+  text_question:
+    english: Which side of the triangle is the hypotenuse?
+    german: Welche Seite des Dreiecks ist die Hypotenuse?
+title:
+  english: Triangle Hypotenuse Identification Task
+  german: Hypotenuse des Dreiecks identifizieren
+topic_id: 25

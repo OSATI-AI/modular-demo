@@ -1,7 +1,9 @@
 # conversation_manager.py
 
-from langchain_openai import ChatOpenAI
+
 import os
+import json
+from openai import OpenAI
 
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
 
@@ -236,9 +238,11 @@ EXAMPLE_P5JS = """
         };"""
 
 class GenerationManager:
-    def __init__(self, api_key, model_name='openai/gpt-4o', api_base='https://openrouter.ai/api/v1'):
-        self.llm = ChatOpenAI(model_name=model_name, openai_api_key=api_key, openai_api_base=api_base)
-
+    def __init__(self, api_key, model_name='gpt-4o', api_base='https://openrouter.ai/api/v1'):
+        self.client = OpenAI(
+            base_url=api_base,
+            api_key=api_key)
+        self.model = model_name
 
     def persona(self):
         return """You are a helpfull AI assistant, designed to help teachers to design learning tasks
@@ -265,9 +269,9 @@ class GenerationManager:
         will see the task in a preview window.If you found an existing task, you do not have to perform
         any of the following steps, just give your answer in json format and include the "existing_task" 
         and "message" fields. If you did not find a task that matches the requirements, set the value of "existing_task"
-        to "None" and continue with STEP 2.
+        to null and continue with STEP 2.
         IMPORTANT: If the given dialog shows, that you already found an existing task but the user wants to change 
-        something, set "existing_task" to "None" and proceed as if you did not found an existing task.
+        something, set "existing_task" to null and proceed as if you did not found an existing task.
         LIST OF EXISTING TASKS:
         {existing_tasks}
 
@@ -283,17 +287,17 @@ class GenerationManager:
         STEP 3:
         Analyse if the task requires to display a figure. This is only possible if the selected template
         provide a container to display images/figures. Add a field "figure" to your answer and set its value
-        to "True" if a figure is required and to "False" if no figure is required.  
+        to true if a figure is required and to false if no figure is required.  
         You are only allowed to use p5js for creating figures.
         Below, there is a list of existing p5js functions with their according descriptions. Check each of them
         and decide if any of them provides a figure that matches the requirements. Add a field "existing_p5js"
         to your answers. If you found an existing function that you will use, give its filename as value, if not
-        give "None" as value.
+        give null as value.
         Examples:
         "existing_p5js":"figure.js"
-        "existing_p5js":"None"
-        Add a field "figure_details" to your answer. If there was an existing p5js function set the value of 
-        the field to "None". If no existing function matches the requirements, give a 
+        "existing_p5js":null
+        Add a field "figure_details" to your answer. If there was an existing p5js function or there is no figure at all set the value of 
+        the field to null. If no existing function matches the requirements, give a 
         detailed description of how the function should be designed (no code yet) as value for the field. If you describe
         how a new function should look like, I would like to create functions that are as general as possible
         in order to reuse them later. So e.g. if the user wants a figure of a linear function, instead of describing
@@ -303,7 +307,6 @@ class GenerationManager:
         {p5js_functions}
 
         Now give your answer in json format and only use the fields as described in the steps above. 
-        Output format: ```json[YOUR ANSWER]```
         """
 
     def prompt_generate(self, user_message,dialog, template, example_task):
@@ -322,8 +325,8 @@ class GenerationManager:
         PREVIOUS_MESSAGE: {user_message}
         FULL_DIALOG: {dialog}
 
-        You will create a yaml object that contains certain descriptive fields as well as javascript code that controlls the elements of the task.
-        The yaml also defines and handles certain events that manages communication with the application
+        You will create a object that contains certain descriptive fields as well as javascript code that controlls the elements of the task.
+        The object also defines and handles certain events that manages communication with the application
         that renders the task. A task is always connected to a certain template. The template defines 
         the overall layout of the task and creates container elements. The task is only allow to work and
         generate things inside these elements. Below, you can find the code of the template that you have to use
@@ -333,11 +336,11 @@ class GenerationManager:
         {template}
         
         EXAMPLE_TASK:
-        "events": "```yaml{events}```"
-        "text":"```yaml{text}```"
-        "script":"```javascript{script}```"
-        "title": "```yaml{title}```"
-        "description": "```yaml{description}```"
+        "events": {events}
+        "text":{text}
+        "script":"{script}"
+        "title": {title}
+        "description": {description}
         "task_id": "{task_id}"
 
         Text elements can be referenced within the script by using double curly brackets:
@@ -365,15 +368,13 @@ class GenerationManager:
         script = task["script"]
         text = task["text"]
         events = task["events"]
-
-        #print("UPDATE P5JS: ", p5js)
         
-        prompt = f"""Below I will provide the yaml file of an existing task. Use this code as a starting point update it
+        prompt = f"""Below I will provide the object of an existing task. Use this code as a starting point update it
         to implement the described task. 
         CURRENT TASK:
-        "events": "```yaml{events}```"
-        "text":"```yaml{text}```"
-        "script":"```javascript{script}```"
+        "events": "{events}"
+        "text":"{text}"
+        "script":"{script}"
         """
         if p5js is not None and p5js != "None": 
             prompt += f"""
@@ -392,24 +393,24 @@ class GenerationManager:
         just did and what changes you have added. But keep it short and simple and do not provide
         technical details like code. Just stick to what happend to the task layout or behavior.
         Always answer in english.]
-        events:"```yaml[YOUR EVENTS OBJECT]```"[Here you will creat a yaml object that contains all outgoing and incoming events that are handled in the script]
-        text:"```yaml[YOUR TEXT OBJECT]```"[Here you will specify all texts that are used in the script. Output a yaml object that contains english and german translations for every text element. For text that contains "you", always use the "Du" in the german translation instead of "Sie"]
-        script:"```javascript[YOUR JAVASCRIPT CODE]```"[Here you will write your javascript code for the task. NEVER use comments on your javascript code!]
-        "title": "```yaml[YOUR TITLE]```"[Create a short title for the task. Add an english and german version]
-        "description": "```yaml[YOUR DESCRIPTION]```"[Create a brief description for the task. Add an english and german version]
-        "task_id": "[YOUR TASK ID]"[As task id use the english title, put task_ in front of it, make all characters lower case and replace all whitespaces with underscores]
+        "events":[YOUR EVENTS OBJECT][Here you will creat a object that contains all outgoing and incoming events that are handled in the script]
+        "text":[YOUR TEXT OBJECT][Here you will specify all texts that are used in the script. Output a object that contains english and german translations for every text element. For text that contains "you", always use the "Du" in the german translation instead of "Sie"]
+        "script":"[YOUR JAVASCRIPT CODE]"[Here you will write your javascript code for the task. NEVER use comments on your javascript code!]
+        "title": [YOUR TITLE OBJECT][Create a short title for the task. Output an object and add an english and german version]
+        "description": [YOUR DESCRIPTION OBJECT][Create a brief description for the task.  Output an object and add an english and german version]
+        "task_id": [YOUR TASK ID] [As task id use the english title, put task_ in front of it, make all characters lower case and replace all whitespaces with underscores]
         """
         if p5js:
             prompt += """
-            p5js:"```javascript[YOUR Javascript CODE]```"[here you will provide any p5js javascript code 
+            "p5js":"[YOUR Javascript CODE]"[here you will provide any p5js javascript code 
             for the figure. Stick to the provided example.]
             """
         
         if update:
             prompt += """
             Only give updated code for the fields that had changed. If a field e.g. text or script was not affected by your update,
-            just give "[NO_CHANGE]" as value. For example:
-            script: "[NO_CHANGE]"
+            just give null as value. For example:
+            "script": null
             """
             if p5js:
                 prompt += """
@@ -417,12 +418,8 @@ class GenerationManager:
                 try to only update the p5js code and leave the script unchanged. Only if the change is not possible without
                 changing the script as well, provide updates to both fields.
                 """
-        
-        prompt += "\n Now give your answer in json format like ```json[YOUR ANSWER]```"
-
-
         return prompt
-
+    
     def prompt_existing_p5js(self, function_description):
         return f"""The task should contain a figure, that should be drawn using p5js. There is an existing
         p5js function that you have to use. Do not provide any new p5js code but just call the given function
@@ -468,8 +465,8 @@ class GenerationManager:
         Below you will receive a description of a learning task followed by a list of 
         topics. Every topic has a title, as well as a level and key_idea it is assigned to.
         Your task is to assign the described task to exactly one topic which is the best fit
-        for the task. Your answer should contain only a single number which represents the id of
-        the according topic. Do not add any additional text to your answer.
+        for the task. Your answer should be a json object that contain a single number which is the 
+        id of the topic you choose.
 
         TASK_DESCRIPTION: 
         {task_description}
@@ -480,21 +477,129 @@ class GenerationManager:
 
     def analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions):
         prompt = self.persona()+"\n"+self.prompt_analyse(user_message,dialog, existing_tasks, templates, p5js_functions)
-        response = self.llm.invoke(prompt)
-        response = response.content
-        return response
+        
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            functions=[
+                {
+                    "name": "create_json",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "existing_task": {
+                                "type": "string"
+                            },
+                            "template": {
+                                "type": "string"
+                            },
+                            "figure":{
+                                "type":"boolean"
+                            },
+                            "existing_p5js":{
+                                "type": "string"
+                            },
+                            "figure_details":{
+                                "type":"string"
+                            },
+                            "message":{
+                                "type":"string"
+                            }
+
+                        },
+                        "required": ["existing_task", "template","figure", "existing_p5js","figure_details"]
+                    }
+                }
+            ],
+            function_call={"name": "create_json"}
+        )
+        
+        obj_str = response.choices[0].message.function_call.arguments
+        obj = json.loads(obj_str)
+        print("\n\n\n##########n", obj)
+        return obj
 
     def generate(self, prompt):
         prompt = self.persona() + "\n" + prompt
-        response = self.llm.invoke(prompt)
-        response = response.content
-        return response
+        response = self.client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        functions=[
+            {
+                "name": "create_json",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "message":{
+                            "type":"string"
+                        },  
+                        "events": {
+                            "type": "object"
+                        },
+                        "text": {
+                            "type": "object"
+                        },
+                        "script":{
+                            "type":"string"
+                        },
+                        "title":{
+                            "type": "object"
+                        },
+                        "description":{
+                            "type":"object"
+                        },
+                        "task_id":{
+                            "type":"string"
+                        },
+                        "p5js":{
+                            "type":"string"
+                        }
+                    },
+                    "required": ["message", "events","text", "script","title", "description", "task_id"]
+                }
+            }
+        ],
+        function_call={"name": "create_json"}
+        )
+    
+        obj_str = response.choices[0].message.function_call.arguments
+        obj = json.loads(obj_str)
 
+        print("\n\n\n##########n", obj)
+
+        return obj
+    
     def find_topic_id(self, task_description, topics_lookup):
         prompt = self.prompt_topic_id(task_description, topics_lookup)
-        response = self.llm.invoke(prompt)
-        response = response.content
-        return response
+        response = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            functions=[
+                {
+                    "name": "create_json",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "topic_id": {
+                                "type": "integer"
+                            },
+                        },
+                        "required": ["topic_id"]
+                    }
+                }
+            ],
+            function_call={"name": "create_json"}
+        )
+        
+        obj_str = response.choices[0].message.function_call.arguments
+        obj = json.loads(obj_str)
+        return obj["topic_id"]
     
 # Create an instance of the conversation manager
 generation_manager = GenerationManager(api_key=OPENROUTER_API_KEY)
