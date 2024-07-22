@@ -396,3 +396,99 @@ color: #2d2d2d;
     margin-right: 10px;
     color: #2ecc71;
 }
+
+
+
+
+
+
+/* Style for the image upload dialog */
+.upload-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    z-index: 1001;
+    width: 300px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.upload-dialog-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.drop-zone {
+    width: 100%;
+    height: 150px;
+    border: 2px dashed #3498db;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3498db;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.drop-zone.drag-over {
+    border-color: #2980b9;
+    background-color: #ecf0f1;
+}
+
+.drop-zone.drag-over.glow {
+    box-shadow: 0 0 10px 2px #3498db;
+}
+
+.upload-dialog-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.upload-dialog-buttons button {
+    width: 45%;
+}
+
+.image-preview {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 150px;
+    border: 2px solid #3498db;
+    border-radius: 8px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+}
+
+.trash-icon {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: white;
+    border: 1px solid #e74c3c;
+    border-radius: 50%;
+    color: #e74c3c;
+    padding: 5px;
+    cursor: pointer;
+}
+
+#btn-upload{
+    margin-left:10px; 
+}

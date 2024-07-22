@@ -1,0 +1,24 @@
+{
+  "task_id": "task_identify_prime_numbers",
+  "template_id": "template_multiple_choice_multi_select",
+  "title": {
+    "english": "Identify Prime Numbers",
+    "german": "Primzahlen erkennen"
+  },
+  "description": {
+    "english": "The student has to identify all prime numbers from a given set of numbers. This is a multiple-choice exercise where multiple selections can be correct.",
+    "german": "Der Schüler muss alle Primzahlen aus einer gegebenen Zahlenmenge erkennen. Dies ist eine Multiple-Choice-Aufgabe, bei der mehrere Auswahlen korrekt sein können."
+  },
+  "topic_id": 19,
+  "events": {
+    "send": ["evaluationResult", "task_details", "task_loaded"],
+    "receive": ["evaluate", "refresh", "get_task_details", "choices_selected"]
+  },
+  "text": {
+    "text_question": {
+      "english": "Select all prime numbers: ",
+      "german": "Wählen Sie alle Primzahlen aus: "
+    }
+  },
+  "script": "let numbers, correctIds;\nconst NUM_CHOICES = 8;\nlet selectedIds = [];\nconst { questionElement, choiceElements } = playerApi.callTemplateScript('createLayout', { choices: NUM_CHOICES, choicesData: [] });\n\nfunction generateExercise() {\n  selectedIds = [];\n  do {\n    numbers = generateRandomNumbers(NUM_CHOICES);\n    const correctNumbers = numbers.filter(isPrime);\n    correctIds = numbers.map((number, index) => correctNumbers.includes(number) ? index : -1).filter(index => index !== -1);\n  } while (correctIds.length === 0);\n  questionElement.innerText = `{{text_question}}`;\n  numbers.forEach((number, index) => {\n    choiceElements[index].querySelector('label').innerText = number;\n  });\n\n  playerApi.sendEvent('task_loaded', {});\n}\n\nfunction generateRandomNumbers(count) {\n  const numbers = new Set();\n  while (numbers.size < count) {\n    numbers.add(Math.floor(Math.random() * 100) + 1);\n  }\n  return Array.from(numbers);\n}\n\nfunction isPrime(num) {\n  if (num <= 1) return false;\n  for (let i = 2; i < num; i++) {\n    if (num % i === 0) return false;\n  }\n  return true;\n}\n\nfunction init() {\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = `The numbers to choose from are: ${numbers}. The correct choices are indices: ${correctIds}.`;\n    playerApi.sendEvent('task_details', {\n      staticInfo: taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n\n  playerApi.receiveEvent('evaluate', function() {\n    const isCorrect = selectedIds.length === correctIds.length && selectedIds.every(id => correctIds.includes(id));\n    playerApi.sendEvent('evaluationResult', {\n      selectedIds,\n      isCorrect\n    });\n  });\n\n  playerApi.receiveEvent('refresh', function() {\n    choiceElements.forEach(choice => choice.querySelector('input').checked = false);\n    selectedIds = [];\n    generateExercise();\n  });\n\n  playerApi.receiveEvent('choices_selected', function(event) {\n    selectedIds = event.map(choice => choice.id);\n    console.log(selectedIds);\n  });\n}\n\ninit();\ngenerateExercise();"
+}

@@ -8,164 +8,6 @@ import time
 
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
 
-EXAMPLE_TEMPLATE = """template_id: "template_multiple_choice"
-        title: "Multiple Choice Template"
-        description: "A template for multiple choice questions."
-        events:
-        send: ["choice_selected"]
-        receive: ["refresh"]
-        html: |
-        <div class="question-container">
-            <p id="question"></p>
-            <div id="choices-container"></div>
-        </div>
-        styles: |
-        .choice {
-            padding: 10px;
-            border: 1px solid #ccc;
-            cursor: pointer;
-            margin: 5px 0;
-        }
-
-        .choice.selected {
-            background-color: #d3d3d3;
-            border-color: #000;
-        }
-
-        .choice:hover {
-            background-color: #f0f0f0;
-        }
-        scripts: |
-        let selectedChoice = null;
-
-        function createLayout(details) {
-            const questionElement = document.getElementById('question');
-            const choicesContainer = document.getElementById('choices-container');
-            choicesContainer.innerHTML = '';
-            const choiceElements = [];
-            for (let i = 0; i < details.choices; i++) {
-            const choiceElement = document.createElement('div');
-            choiceElement.classList.add('choice');
-            choiceElement.addEventListener('click', () => selectChoice(choiceElement, i, details.choicesData[i]));
-            choicesContainer.appendChild(choiceElement);
-            choiceElements.push(choiceElement);
-            }
-            return { questionElement, choiceElements };
-        }
-
-        function selectChoice(choiceElement, id, content) {
-            if (selectedChoice) {
-            selectedChoice.classList.remove('selected');
-            }
-            choiceElement.classList.add('selected');
-            selectedChoice = choiceElement;
-            playerApi.sendEvent('choice_selected', { id, content });
-        }
-
-        playerApi.callTemplateScript = (method, details) => {
-            if (method === 'createLayout') {
-            return createLayout(details);
-            }
-        };
-
-        playerApi.receiveEvent('refresh', function() {
-            selectedChoice = null;
-        });"""
-
-EXAMPLE_TASK = """task_id: "task_estimate_addition"
-        template_id: "template_multiple_choice"
-        title:
-        english: "Estimate Addition"
-        german: "Schätze Addition"
-        description:
-        english: "The student has to estimate the solution of an addition problem with two floating point numbers by rounding them and adding the rounded numbers together. This is a multiple choice exercise where only one choice is the correct answer."
-        german: "Der Schüler muss die Lösung eines Additionsproblems mit zwei Gleitkommazahlen schätzen, indem er sie aufrundet und die gerundeten Zahlen zusammenzählt. Dies ist eine Multiple-Choice-Aufgabe, bei der nur eine Wahl die richtige Antwort ist."
-        topic_id: 18
-        events:
-        send: ["evaluationResult", "task_details", "task_loaded"]
-        receive: ["evaluate", "refresh", "get_task_details"]
-        text:
-            text_question:
-                english: "Estimate: "
-                german: "Schätze: "
-            text_no_choice:
-                english: "No choice selected"
-                german: "Keine Auswahl getroffen"
-        script: |
-        let num1, num2, answer, choices;
-        const NUM_CHOICES = 4;
-        const { questionElement, choiceElements } = playerApi.callTemplateScript('createLayout', { choices: NUM_CHOICES, choicesData: [] });
-
-        function generateExercise() {
-            num1 = (Math.random() * 98 + 1).toFixed(2);
-            num2 = (Math.random() * 98 + 1).toFixed(2);
-
-            const correct = Math.round(num1) + Math.round(num2);
-            choices = [correct];
-            for (let i = 0; i < NUM_CHOICES - 1; i++) {
-            let delta;
-            do {
-                delta = Math.floor(Math.random() * 21) - 10;
-            } while (choices.includes(correct + delta));
-            choices.push(correct + delta);
-            }
-
-            choices.sort((a, b) => a - b);
-            answer = choices.indexOf(correct);
-            questionElement.innerText = `{{text.text_question}} ${num1} + ${num2} = `;
-            choices.forEach((choice, index) => {
-            choiceElements[index].innerText = choice;
-            choiceElements[index].onclick = () => selectChoice(index);
-            });
-
-            playerApi.sendEvent('task_loaded', {});
-        }
-
-        function selectChoice(index) {
-            choiceElements.forEach((choice, i) => {
-            if (i === index) {
-                choice.classList.add('selected');
-            } else {
-                choice.classList.remove('selected');
-            }
-            });
-            playerApi.selectedChoice = index;
-        }
-
-        function init() {
-            playerApi.receiveEvent('get_task_details', function() {
-            const taskDetails = playerApi.getTaskDetails();
-            const dynamicDetails = `The exercise is ${num1} + ${num2}. The possible choices are: ${choices}. The correct answer is choice number ${answer + 1}, which is ${choices[answer]}.`;
-            playerApi.sendEvent('task_details', {
-                staticInfo: taskDetails.description,
-                dynamicDetails: dynamicDetails
-            });
-            });
-
-            playerApi.receiveEvent('evaluate', function() {
-            const selectedChoiceElement = document.querySelector('.choice.selected');
-            if (!selectedChoiceElement) {
-                playerApi.sendEvent('evaluationResult', { result: '{{text.text_no_choice}}' });
-                return;
-            }
-            const selectedId = Array.from(choiceElements).indexOf(selectedChoiceElement);
-            const isCorrect = selectedId === answer;
-            playerApi.sendEvent('evaluationResult', {
-                selectedId,
-                selectedContent: selectedChoiceElement.innerText,
-                isCorrect
-            });
-            });
-
-            playerApi.receiveEvent('refresh', function() {
-            choiceElements.forEach(choice => choice.classList.remove('selected'));
-            generateExercise();
-            });
-        }
-
-        init();
-        generateExercise();"""
-
 EXAMPLE_P5JS = """
         /* 
         *** Function Description Start ***
@@ -250,8 +92,8 @@ class GenerationManager:
         for their students. Your job is to listen to the description and requirements of the teacher
         and create a task according to certain design rules."""
         
-    def prompt_analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions):
-        return f""" You will receive the user's message and the complete previous dialog which includes 
+    def prompt_analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions, img_path):
+        prompt =  f""" You will receive the user's message and the complete previous dialog which includes 
         the description of the learning task that should be created. Work through the following steps and give your answer in json format.
 
         PREVIOUS_MESSAGE: {user_message}
@@ -263,7 +105,7 @@ class GenerationManager:
         that implements all features of what the user asked for, add the field "existing_task" to your
         answer and give the name of the task as value. 
         Example: 
-        "existing_task": "task_gradient.yaml"
+        "existing_task": "task_gradient.json"
         If you found and existing task, add a field "message" to your answer as well and describe that 
         found an existing task that could match the requirements, then ask if the user is happy with this
         choice or if he/she wants to change someting. Do not mention the filename of the task, the user
@@ -281,36 +123,54 @@ class GenerationManager:
         You are only allowed to pick exactly one template out of the provided lists of templates and their description.
         Add a field "template" to your answer and give the name of the template as value.
         Example:
-        "template": "template_multiple_choice.yaml"
+        "template": "template_multiple_choice.json"
         LIST OF TEMPLATES:
         {templates}
-
-        STEP 3:
-        Analyse if the task requires to display a figure. This is only possible if the selected template
-        provide a container to display images/figures. Add a field "figure" to your answer and set its value
-        to true if a figure is required and to false if no figure is required.  
-        You are only allowed to use p5js for creating figures.
-        Below, there is a list of existing p5js functions with their according descriptions. Check each of them
-        and decide if any of them provides a figure that matches the requirements. Add a field "existing_p5js"
-        to your answers. If you found an existing function that you will use, give its filename as value, if not
-        give null as value.
-        Examples:
-        "existing_p5js":"figure.js"
-        "existing_p5js":null
-        Add a field "figure_details" to your answer. If there was an existing p5js function or there is no figure at all set the value of 
-        the field to null. If no existing function matches the requirements, give a 
-        detailed description of how the function should be designed (no code yet) as value for the field. If you describe
-        how a new function should look like, I would like to create functions that are as general as possible
-        in order to reuse them later. So e.g. if the user wants a figure of a linear function, instead of describing
-        a p5js function that only can render linear functions, instead try to describe a function that can plot
-        any kind of mathematical function. 
-        LIST OF EXISTING P5JS FUNCTIONS:
-        {p5js_functions}
-
-        Now give your answer in json format and only use the fields as described in the steps above. 
         """
 
-    def prompt_generate(self, user_message,dialog, template, example_task):
+
+
+        if img_path:
+            prompt += f"""
+            IMAGE:
+            In addition to the message, the user also uploaded an image, which is available 
+            under the relative url: {img_path}
+            Set the fields of the output object as follows:
+            "image": true, 
+            "existing_p5js":null,
+            "figure_details":null,
+            "figure_path": [Give here the relative url of the image]
+            """
+
+        else: 
+            prompt += f"""
+            STEP 3:
+            Analyse if the task requires to display a figure. This is only possible if the selected template
+            provide a container to display images/figures. Add a field "figure" to your answer and set its value
+            to true if a figure is required and to false if no figure is required.  
+            You are only allowed to use p5js for creating figures.
+            Below, there is a list of existing p5js functions with their according descriptions. Check each of them
+            and decide if any of them provides a figure that matches the requirements. Add a field "existing_p5js"
+            to your answers. If you found an existing function that you will use, give its filename as value, if not
+            give null as value.
+            Examples:
+            "existing_p5js":"figure.js"
+            "existing_p5js":null
+            Add a field "figure_details" to your answer. If there was an existing p5js function or there is no figure at all set the value of 
+            the field to null. If no existing function matches the requirements, give a 
+            detailed description of how the function should be designed (no code yet) as value for the field. If you describe
+            how a new function should look like, I would like to create functions that are as general as possible
+            in order to reuse them later. So e.g. if the user wants a figure of a linear function, instead of describing
+            a p5js function that only can render linear functions, instead try to describe a function that can plot
+            any kind of mathematical function. 
+            LIST OF EXISTING P5JS FUNCTIONS:
+            {p5js_functions}            
+            IMPORTANT: 
+            Set "figure_path" always to null.
+            """
+        return prompt
+
+    def prompt_generate(self, user_message,dialog, template, example_task, img_path):
 
         script = example_task["script"]
         text = example_task["text"]
@@ -319,7 +179,7 @@ class GenerationManager:
         description = example_task["description"]
         task_id = example_task["task_id"]
 
-        return f""" 
+        prompt = f""" 
         You will receive the user's message and the complete previous dialog which includes 
         the description of the learning task that should be created. Work through the following steps and give your answer in json format.
 
@@ -345,13 +205,20 @@ class GenerationManager:
         "task_id": "{task_id}"
 
         Text elements can be referenced within the script by using double curly brackets:
-        Example: answerLabel.innerHTML = "<b>{{text.text_answer}}: </b>";
+        Example: answerLabel.innerHTML = "<b>{{name}}: </b>";
+        Every text element has to be declared in the "text" field and need a unique identifier to reference it in the javascript code.
+        So even if we have a list of text elements that should be displayed somewhere, every text element need an id and has to be
+        referenced with double curly brackets. 
 
         You are not supposed to handle feedback to the user. The only thing you have to take care is to handle the evaluation
         event and return an object in the format: 
         userInput: [INPUT OF THE USER]
         result: [CORRECT ANSER]
         isCorrect: [TRUE or FALSE]
+        Please note: The evaluation function ALWAYS have to return a single object with those three parameters. Even if the task
+        is e.g. a multiple choice task with several correct answers, decide based on the logic of the task and the description of the user
+        when a task is either correct or not correct. There is no way to describe partially correct answers or lists of booleans.
+        You have to decide and pick one boolean to set as value. 
 
         Whenever you generate random numbers in the javascript code, make sure that the variables 
         are really saved as numbers. Use functions like parseFloat or parseInt to ensure that.
@@ -361,9 +228,44 @@ class GenerationManager:
         always make sure to handle the refresh event correctly and generate new random details for the
         task. Also make sure to update the correct result to ensure that the evaluate event is handled correctly.
 
+        It is very important that you handle the getTaskDetails event and return a very detailed description of every information connected
+        to the task. This includes all static information that do not change when refreshing the task as well as dynamic information like
+        the reandom generated numbers, or the correct solution. This details are later used to explain an AI tutor the whole situation as exact as possible.
+         
+        The student will never see your generated "description" neither will they see the generated "task_details". The student can only see the content of the 
+        html elements that we get from the template. So always make sure that all information that are relevant for the student
+        to solve the task (e.g. numbers that need to be used) are displayed somewhere in the html not only in the description or detailed description.
+
+        Whenever a user is required to input numbers or other mathematical terms, use "math-field" from the mathlive library whenever possible. (You can always assume that it is available in the current context)
+        If you are using "math-field" elements and want to display the calculation inside of it, make sure to use "setValue" to
+        really add the equation to the math field. 
+        Example Code:
+
+        n1 = Math.floor(Math.random() * 9 + 1) * 10;
+        n2 = Math.floor(Math.random() * 9 + 1) * 10;
+        answer = n1 * n2;
+        const equation = `${{n1}} \\cdot ${{n2}} = \\placeholder[answer]{{}}`;
+        questionElement.innerText = "{{question}}";
+        const answerField = document.createElement("math-field");
+        answerField.id = "equation";
+        // THIS IS THE IMPORTANT PART:
+        answerField.setValue(equation);
+        
+        answerField.mathVirtualKeyboardPolicy = "manual";
+        answerField.readonly = true;
+        answerElement.append(answerField);
+
         Always try to implement the user request as accurately as possible, but always stick to
         format given by the template and the provided examples. 
         """
+
+        if img_path:
+            prompt += f"""
+            IMAGE:
+            In addition to the message, the user also uploaded an image, which is available 
+            under the relative url: {img_path}
+            """
+        return prompt
 
     def prompt_generate_update(self, task, p5js=None):
         script = task["script"]
@@ -393,7 +295,7 @@ class GenerationManager:
         message: "[YOUR MESSAGE]" [Give a short answer to the previous user message in which you explain what you 
         just did and what changes you have added. But keep it short and simple and do not provide
         technical details like code. Just stick to what happend to the task layout or behavior.
-        Always answer in english.]
+        Always answer in the same language as the previous user message was written in.]
         "events":[YOUR EVENTS OBJECT][Here you will creat a object that contains all outgoing and incoming events that are handled in the script]
         "text":[YOUR TEXT OBJECT][Here you will specify all texts that are used in the script. Output a object that contains english and german translations for every text element. For text that contains "you", always use the "Du" in the german translation instead of "Sie"]
         "script":"[YOUR JAVASCRIPT CODE]"[Here you will write your javascript code for the task. NEVER use comments on your javascript code!]
@@ -476,8 +378,8 @@ class GenerationManager:
         {topics_lookup}
         """
 
-    def analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions):
-        prompt = self.persona()+"\n"+self.prompt_analyse(user_message,dialog, existing_tasks, templates, p5js_functions)
+    def analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions, img_path):
+        prompt = self.persona()+"\n"+self.prompt_analyse(user_message,dialog, existing_tasks, templates, p5js_functions, img_path)
         
         start = time.time()
         response = self.client.chat.completions.create(
@@ -506,12 +408,15 @@ class GenerationManager:
                             "figure_details":{
                                 "type":"string"
                             },
+                            "figure_path":{
+                                "type":"string"
+                            },
                             "message":{
                                 "type":"string"
                             }
 
                         },
-                        "required": ["existing_task", "template","figure", "existing_p5js","figure_details"]
+                        "required": ["existing_task", "template","figure", "existing_p5js","figure_details", "figure_path"]
                     }
                 }
             ],
@@ -527,14 +432,23 @@ class GenerationManager:
         print("   - Time: ", response_time, "s")
         print("   - Input Token: ", input_token)
         print("   - Output Token: ", output_token)
+        
         print("\n------------------------\\n\n\n")
         
         obj_str = response.choices[0].message.function_call.arguments
         obj = json.loads(obj_str)
+        
+        print("\n\n",obj, "\n\n")
+        
+
         return obj
 
     def generate(self, prompt):
         prompt = self.persona() + "\n" + prompt
+
+
+        print("\n\n\n",prompt, "\n\n\n")
+
         start = time.time()
         response = self.client.chat.completions.create(
         model=self.model,

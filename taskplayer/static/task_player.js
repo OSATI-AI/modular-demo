@@ -17,36 +17,33 @@
       });
     }
 
-    fillText(yamlObject, language) {
-      if (!yamlObject.text) {
-          return yamlObject;
-      }
-  
-      const textData = yamlObject.text;
-      const context = {};
-  
-      for (const key in textData) {
-          if (textData.hasOwnProperty(key) && textData[key][language]) {
-              context[key] = textData[key][language];
+
+    fillText(task, language) {
+      let text = this.buildText(task.text, language);
+      let template = Handlebars.compile(JSON.stringify(task));
+      let task_str = template(text)
+      return JSON.parse(task_str)
+    }
+
+    buildText(text_obj, language) {
+      let template = {};
+      for (const [key, value] of Object.entries(text_obj)) {
+          if (Array.isArray(value)) {
+              template[key] = value.map(item => item[language]);
+          } else {
+              template[key] = value[language];
           }
       }
-  
-      let yamlString = jsyaml.dump(yamlObject);
-      for (const key in context) {
-          const regex = new RegExp(`{{text.${key}}}`, 'g');
-          yamlString = yamlString.replace(regex, context[key]);
-      }
-  
-      return jsyaml.load(yamlString);
-      }
-  
-  
-      openTask(taskYaml, templateYaml, language ="english") {
-        try {
-            this.task = jsyaml.load(taskYaml);
-            this.template = jsyaml.load(templateYaml);
+      return template;
+  }
+    
+      openTask(task, template, language ="english") {
+        this.events = []
 
+        try {
             // Fill text based on the selected language
+            this.task = task
+            this.template = template
             this.task = this.fillText(this.task, language);
     
             this.applyStyles(this.template.styles);
@@ -104,17 +101,23 @@
     }
   
     sendEvent(event, data) {
+      console.log("Send event", event)
       const customEvent = new CustomEvent(event, { detail: data });
       document.dispatchEvent(customEvent);
+      this.routeEvent(event,data)
     }
   
     receiveEvent(event, callback) {
-      this.events[event] = callback;
+      console.log("receive event", event)
+      if (!this.events[event]) {
+        this.events[event] = [];
+      }
+      this.events[event].push(callback);
     }
-  
+    
     routeEvent(event, data) {
       if (this.events[event]) {
-        this.events[event](data);
+        this.events[event].forEach(callback => callback(data));
       }
     }
   }

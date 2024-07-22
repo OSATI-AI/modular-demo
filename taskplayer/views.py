@@ -1,26 +1,26 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-import yaml
 import os
 import json
 from .conversation_manager import conversation_manager
 from .generation_manager import generation_manager
 from django.views.decorators.csrf import csrf_exempt
-from jinja2 import Template
 import re 
+from django.core.files.storage import FileSystemStorage
 
 tasks_dir = os.path.join(os.path.dirname(__file__), 'data/tasks')
 template_dir = os.path.join(os.path.dirname(__file__), 'data/templates')
 js_dir =  os.path.join(os.path.dirname(__file__), 'data/scripts')
+
 
 def load_tasks(tasks_dir):
     tasks = []
     task_files = []
     # Load all tasks in the given directory and create list of tuples (title, filename, topic_id)
     for task_file in os.listdir(tasks_dir):
-        if task_file.endswith('.yaml'):
+        if task_file.endswith('.json'):
             with open(os.path.join(tasks_dir, task_file), 'r', encoding='utf-8') as file:
-                task = yaml.safe_load(file)
+                task = json.load(file)
                 tasks.append(task)
                 task_files.append(task_file)
     return tasks, task_files
@@ -29,9 +29,9 @@ def load_task_description(tasks_dir):
     tasks = {}
     # Load all tasks in the given directory and create list of tuples (title, filename, topic_id)
     for task_file in os.listdir(tasks_dir):
-        if task_file.endswith('.yaml'):
+        if task_file.endswith('.json'):
             with open(os.path.join(tasks_dir, task_file), 'r', encoding='utf-8') as file:
-                task = yaml.safe_load(file)
+                task = json.load(file)
                 tasks[task_file] = task['description']["english"]
     return tasks
 
@@ -39,12 +39,12 @@ def structure_tasks(tasks, topics_lookup, language):
     structured_tasks = {}
 
     for title, filename, topic_id in tasks:
-        topic = topics_lookup['topics'][topic_id]
+        topic = topics_lookup['topics'][str(topic_id)]
         key_idea_id = topic['key_idea']
         level_id = topic['level']
 
-        level_name = topics_lookup['levels'][level_id][language]
-        key_idea_name = topics_lookup['key_ideas'][key_idea_id][language]
+        level_name = topics_lookup['levels'][str(level_id)][language]
+        key_idea_name = topics_lookup['key_ideas'][str(key_idea_id)][language]
         topic_name = topic['title'][language]
 
         if level_name not in structured_tasks:
@@ -62,47 +62,47 @@ def structure_tasks(tasks, topics_lookup, language):
 
 def index(request):
     language = request.GET.get('lang', 'english')
-
     tasks_dir = os.path.join(os.path.dirname(__file__), 'data/tasks')
     tasks, task_files = load_tasks(tasks_dir)
     tasks =  [(tasks[i]['title'][language], task_files[i], tasks[i]['topic_id']) for i in range(len(tasks))]
-
-    with open(os.path.join(os.path.dirname(__file__), 'data/topics_lookup.yaml'), 'r', encoding='utf-8') as file:
-        topics_lookup = yaml.safe_load(file)
-
+    topics_lookup = get_topics_lookup()
     structured_tasks = structure_tasks(tasks, topics_lookup, language)
-
     return render(request, 'index.html', {'structured_tasks': structured_tasks, 'language': language})
 
 def read_template(template_id):
     template_file = os.path.join(template_dir, template_id)
     with open(template_file, 'r') as file:
-        template_yaml = yaml.safe_load(file)
-    return template_yaml
+        template = json.load(file)
+    return template
 
 def read_task_and_template(task_id, language = "english"):
+    if ".json" not in task_id:
+        task_id+=".json"
     task_file = os.path.join(tasks_dir, f'{task_id}')
     with open(task_file, 'r', encoding="utf-8") as file:
-        task_yaml = yaml.safe_load(file)
-    template_id = f'{task_yaml["template_id"]}.yaml'
-    template_yaml = read_template(template_id)
+        task = json.load(file)
+    template_id = f'{task["template_id"]}.json'
+    template = read_template(template_id)
     
-    return task_yaml, template_yaml
+    return task, template
 
 def load_task(request):
     task_id = request.GET.get('task_id')
     language = request.GET.get('lang', 'english')
     js_code = ""
     if task_id:
-        task_yaml, template_yaml = read_task_and_template(task_id, language)
+        task, template = read_task_and_template(task_id, language)
         # load external p5js code
-        if "external_scripts" in task_yaml:
-            for script_file in task_yaml["external_scripts"]:
+        if "external_scripts" in task:
+            for script_file in task["external_scripts"]:
                 js_code += get_js_code(js_dir, script_file)
-            
-        return JsonResponse({'task': yaml.dump(task_yaml), 'template': yaml.dump(template_yaml), 'p5js':js_code})
-
+        return JsonResponse({'task': task, 'template': template, 'p5js':js_code})
     return JsonResponse({'error': 'Task ID not provided'}, status=400)
+
+def get_topics_lookup():
+    with open(os.path.join(os.path.dirname(__file__), 'data/topics_lookup.json'), 'r', encoding='utf-8') as file:
+            topics_lookup = json.load(file)
+    return topics_lookup
 
 @csrf_exempt
 def send_message(request):
@@ -127,9 +127,9 @@ def generate(request):
 def load_templates(template_dir):
     templates = {}
     for template_file in os.listdir(template_dir):
-        if template_file.endswith('.yaml'):
+        if template_file.endswith('.json'):
             with open(os.path.join(template_dir, template_file), 'r', encoding='utf-8') as file:
-                template = yaml.safe_load(file)
+                template = json.load(file)
                 templates[template_file] = template.get('description', '')
     return templates
 
@@ -167,33 +167,23 @@ def get_js_code(path, filename):
         content = js_file.read()
     return content
 
-def get_example_task(path, template_id):
-    template_id = template_id.replace(".yaml", "")
-    tasks,_ = load_tasks(path)
-    task_filtered = [t for t in tasks if t["template_id"] == template_id]
-    return task_filtered[0]
-
-def remove_code_identifier(value):
-    if value.startswith("```javascript"):
-        value = value.replace("```javascript", "")
-    elif value.startswith("```json"):
-        value =value.replace("```json", "")
-    elif value.startswith("```yaml"):
-        value =value.replace("```yaml", "")
-    #value = value.replace("\n", "")
-
-    return value[:-3]
+def get_example_task(template):
+    task_file = template["example_task"]+".json"
+    with open(os.path.join(tasks_dir, task_file), 'r', encoding='utf-8') as file:
+        task = json.load(file)
+    return task
 
 @csrf_exempt
 def generator_message(request):
     if request.method == "POST":
         # PARSE REQUEST
         data = json.loads(request.body)
-        user_message = data.get('message')
-        current_task = data.get('task')
-        current_p5js = data.get('p5js')       
-        dialog = data.get('dialog')
-        language = data.get('language')
+        user_message = data.get('message', None)
+        current_task = data.get('task', None)
+        current_p5js = data.get('p5js', None)       
+        dialog = data.get('dialog', None)
+        language = data.get('language', None)
+        img_path = data.get('image', None)
 
         bool_generate_p5js = False
         bool_update = False
@@ -210,31 +200,31 @@ def generator_message(request):
         p5js_functions = get_js_descriptions(js_dir)
         
         # TEST
-        task_analysis = generation_manager.analyse(user_message,dialog, existing_tasks, templates, p5js_functions)
+        task_analysis = generation_manager.analyse(user_message,dialog, existing_tasks, templates, p5js_functions, img_path)
         task_id = task_analysis["existing_task"]
         if task_id:
-            task_yaml, template_yaml = read_task_and_template(task_id, language)
+            task, template = read_task_and_template(task_id, language)
             message = task_analysis["message"]
-            if "external_scripts" in task_yaml:
+            if "external_scripts" in task:
                 p5js_code = ""
-                for script_file in task_yaml["external_scripts"]:
+                for script_file in task["external_scripts"]:
                     p5js_code += get_js_code(js_dir, script_file)
 
 
         else:
             template_id = task_analysis["template"]
-            template_yaml = read_template(template_id) 
-
-            example_task = get_example_task(tasks_dir, template_id)
-            if "external_scripts" in example_task:
-                example_task.pop('external_scripts')
-            example_task.pop('topic_id')
+            template = read_template(template_id) 
+            example_task = get_example_task(template)
+            if example_task != None:
+                if "external_scripts" in example_task:
+                    example_task.pop('external_scripts')
+                example_task.pop('topic_id')
             
             # base generation (no figure, no update)
-            prompt = generation_manager.prompt_generate(user_message,dialog,yaml.dump(template_yaml),example_task)
+            prompt = generation_manager.prompt_generate(user_message,dialog,json.dumps(template),example_task, img_path)
 
             # Optional Figure Prompt
-            if task_analysis["figure"]:
+            if task_analysis["figure"] and task_analysis["figure_path"] is None:
                 p5js_file = task_analysis["existing_p5js"]
                 if p5js_file:
                     # Use existing p5js function
@@ -248,8 +238,8 @@ def generator_message(request):
                     bool_generate_p5js = True
             
             # Optional update existing task
-            if current_task != "None":
-                prompt += generation_manager.prompt_generate_update(yaml.safe_load(current_task), current_p5js)
+            if current_task:
+                prompt += generation_manager.prompt_generate_update(current_task, current_p5js)
                 bool_update = True
             prompt += generation_manager.prompt_output_format(bool_update, bool_generate_p5js)
             response = generation_manager.generate(prompt)
@@ -257,11 +247,11 @@ def generator_message(request):
             message = response["message"]
 
             if bool_update:
-                current_task = yaml.safe_load(current_task)
                 if response["script"] is None:
                     script = current_task["script"]
                 else:
                     script = response["script"]
+                    
                 if response["events"]  is None:
                     events = current_task["events"]
                 else:
@@ -290,15 +280,24 @@ def generator_message(request):
                 description = response["description"]
                 task_id =response["task_id"]
 
-            task_yaml = {}
-            task_yaml["title"] = title
-            task_yaml["description"] = description
-            task_yaml["task_id"] = task_id
-            task_yaml["template_id"] = template_id[:-5]
-            task_yaml["events"] = events
-            task_yaml["text"] = text
-            task_yaml["script"] = script
-            task_yaml["topic_id"] = 1
+
+            print("\n\n\n BEFORE \n", script)
+
+            script.replace("\\\\\\\\", "\\\\")
+            script.replace("\\\\\\", "\\\\")
+            
+            print("\n\n\n AFTER \n", script)
+
+
+            task = {}
+            task["title"] = title
+            task["description"] = description
+            task["task_id"] = task_id
+            task["template_id"] = template_id[:-5]
+            task["events"] = events
+            task["text"] = text
+            task["script"] = script
+            task["topic_id"] = 1
 
             if "p5js" in response:
                 p5js_code = response["p5js"]
@@ -308,14 +307,13 @@ def generator_message(request):
                     p5js_code = p5js_code
 
             if p5js_file:
-                task_yaml["external_scripts"] = [p5js_file]
+                task["external_scripts"] = [p5js_file]
                 p5js_code = get_js_code(js_dir, p5js_file)
-            task_yaml = yaml.safe_load(yaml.dump(task_yaml))
 
         response = {
             "message":message, 
-            "task":yaml.dump(task_yaml), 
-            "template":yaml.dump(template_yaml), 
+            "task":task, 
+            "template":template, 
             "p5js": p5js_code
         }
 
@@ -327,28 +325,39 @@ def generator_message(request):
 def save_task(request):
     if request.method == 'POST':
         data = json.loads(request.body)
-        task_yaml = data.get('task', '')
-        p5js = data.get('p5js', 'None')
-
-        task_dict = yaml.safe_load(task_yaml)
+        task = data.get('task', None)
+        p5js = data.get('p5js', None)
 
         # if new p5js was generated, save it to a js file
-        if p5js != 'None' and "external_scripts" not in task_dict:
+        if p5js and "external_scripts" not in task:
             filename = "script_"+str(len(os.listdir(js_dir)))+".js"
             with open(os.path.join(js_dir, filename), "w") as file:
                 file.write(p5js)
-            task_dict["external_scripts"] = [filename]
+            task["external_scripts"] = [filename]
 
         # find topic id and save task
-        task_id = task_dict.get('task_id', 'untitled_task')
-        task_path = os.path.join(tasks_dir, f'{task_id}.yaml')
-        with open(os.path.join(os.path.dirname(__file__), 'data/topics_lookup.yaml'), 'r', encoding='utf-8') as file:
-            topics_lookup = yaml.safe_load(file)
-        topic_id = generation_manager.find_topic_id(task_dict["description"]["english"], yaml.safe_dump(topics_lookup))
-        task_dict["topic_id"] = topic_id
+        task_id = task.get('task_id', 'untitled_task')
+        task_path = os.path.join(tasks_dir, f'{task_id}.json')
+        
+
+        topics_lookup = get_topics_lookup()
+
+        topic_id = generation_manager.find_topic_id(task["description"]["english"], json.dumps(topics_lookup))
+        task["topic_id"] = topic_id
 
         with open(task_path, 'w') as task_file:
-            yaml.dump(task_dict, task_file, default_flow_style=False)
+            json.dump(task, task_file)
 
         return JsonResponse({'status': 'success', 'message': 'Task saved successfully.'})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+
+
+@csrf_exempt
+def upload_image(request):
+    if request.method == 'POST' and request.FILES['image']:
+        image = request.FILES['image']
+        fs = FileSystemStorage()
+        filename = fs.save(image.name, image)
+        file_url = fs.url(filename)
+        return JsonResponse({'path': file_url})
+    return JsonResponse({'error': 'Invalid request'}, status=400)

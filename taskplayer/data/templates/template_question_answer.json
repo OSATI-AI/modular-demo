@@ -1,0 +1,12 @@
+{
+  "template_id": "template_question_answer",
+  "title": "Simple Input Template",
+  "example_task":"task_multiplying_with_tens",
+  "description": "A template with a question and a container for an input field or any other element.",
+  "events": {
+    "send": [],
+    "receive": []
+  },
+  "html": "<div class=\"question-container\">\n  <p id=\"question\"></p>\n  <div id=\"answer\"></div> <!-- Empty container for the answer element -->\n</div>",
+  "scripts": "function createLayout(details) {\n  const questionElement = document.getElementById('question');\n  const answerElement = document.getElementById('answer');\n  return { questionElement, answerElement };\n}\n\nplayerApi.callTemplateScript = (method, details) => {\n  if (method === 'createLayout') {\n    return createLayout(details);\n  }\n};"
+}

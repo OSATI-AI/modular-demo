@@ -1,0 +1,14 @@
+{
+    "template_id": "template_figure_question_multiple_choice",
+    "title": "Figure Question Multiple Choice Template",
+    "example_task":"task_estimate_addition",
+    "description": "A template with a question, a figure placeholder, and a container for multiple choice elements.",
+    "events": {
+      "send": ["choice_selected"],
+      "receive": ["refresh"]
+    },
+    "html": "<div class=\"question-container\">\n  <p id=\"question\"></p>\n  <div id=\"image_placeholder\"></div>\n  <div id=\"choices-container\"></div>\n</div>",
+    "styles": ".choice {\n  padding: 10px;\n  border: 1px solid #ccc;\n  cursor: pointer;\n  margin: 5px 0;\n}\n\n.choice.selected {\n  background-color: #d3d3d3;\n  border-color: #000;\n}\n\n.choice:hover {\n  background-color: #f0f0f0;\n}",
+    "scripts": "let selectedChoice = null;\n\nfunction createLayout(details) {\n  const questionElement = document.getElementById('question');\n  const imagePlaceholder = document.getElementById('image_placeholder');\n  const choicesContainer = document.getElementById('choices-container');\n  choicesContainer.innerHTML = '';\n  const choiceElements = [];\n  for (let i = 0; i < details.choices; i++) {\n    const choiceElement = document.createElement('div');\n    choiceElement.classList.add('choice');\n    choiceElement.addEventListener('click', () => selectChoice(choiceElement, i, details.choicesData[i]));\n    choicesContainer.appendChild(choiceElement);\n    choiceElements.push(choiceElement);\n  }\n  return { questionElement, imagePlaceholder, choiceElements };\n}\n\nfunction selectChoice(choiceElement, id, content) {\n  if (selectedChoice) {\n    selectedChoice.classList.remove('selected');\n  }\n  choiceElement.classList.add('selected');\n  selectedChoice = choiceElement;\n  playerApi.sendEvent('choice_selected', { id, content });\n}\n\nplayerApi.callTemplateScript = (method, details) => {\n  if (method === 'createLayout') {\n    return createLayout(details);\n  }\n};\n\nplayerApi.receiveEvent('refresh', function() {\n  selectedChoice = null;\n});"
+  }
+  

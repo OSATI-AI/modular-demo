@@ -1,0 +1,47 @@
+{
+  "task_id": "task_name_shapes",
+  "template_id": "template_multiple_choice",
+  "title": {
+    "english": "Name Shapes",
+    "german": "Formen bestimmen"
+  },
+  "description": {
+    "english": "The student is asked to identify a certain geometrical shape from a multiple-choice list of 3 items, each showing a different shape.",
+    "german": "Der Schüler wird gebeten, eine bestimmte geometrische Form aus einer Liste mit 3 verschiedenen Formen auszuwählen."
+  },
+  "topic_id": 12,
+  "events": {
+    "send": ["evaluationResult", "task_details", "task_loaded"],
+    "receive": ["evaluate", "refresh", "get_task_details", "choice_selected"]
+  },
+  "external_scripts": [
+    "shapes.js"
+  ],
+  "text": {
+    "text_question": {
+      "english": "Which shape is",
+      "german": "Welche Form ist"
+    },
+    "text_triangle": {
+      "english": "a triangle",
+      "german": "ein Dreieck"
+    },
+    "text_rectangle": {
+      "english": "a rectangle",
+      "german": "ein Rechteck"
+    },
+    "text_quadrangle": {
+      "english": "a quadrangle",
+      "german": "ein Viereck"
+    },
+    "text_pentagon": {
+      "english": "a pentagon",
+      "german": "ein Fünfeck"
+    },
+    "text_ellipse": {
+      "english": "an ellipse",
+      "german": "eine Ellipse"
+    }
+  },
+  "script": "let answer, selected;\nconst NUM_CHOICES = 3;\nconst shapes = {\n  \"triangle\": {\n    \"name\": \"{{text_triangle}}\",\n    \"function\": drawTriangle\n  },\n  \"rectangle\": {\n    \"name\": \"{{text_rectangle}}\",\n    \"function\": drawRectangle\n  },\n  \"quadrangle\": {\n    \"name\": \"{{text_quadrangle}}\",\n    \"function\": drawQuadrangle\n  },\n  \"pentagon\": {\n    \"name\": \"{{text_pentagon}}\",\n    \"function\": drawPentagon\n  },\n  \"ellipse\": {\n    \"name\": \"{{text_ellipse}}\",\n    \"function\": drawEllipse\n  }\n};\nlet choices;\n\nconst { questionElement, choiceElements } = playerApi.callTemplateScript('createLayout', { choices: NUM_CHOICES, choicesData: [] });\n\nfunction generateExercise() {\n  selected = null;\n  choiceElements.forEach(choice => choice.innerHTML = '');\n\n  const correctShape = Object.keys(shapes)[Math.floor(Math.random() * Object.keys(shapes).length)];\n  const shapeChoices = [correctShape];\n  for (let i = 0; i < NUM_CHOICES - 1; i++) {\n    let shape;\n    do {\n      shape = Object.keys(shapes)[Math.floor(Math.random() * Object.keys(shapes).length)];\n    } while (shapeChoices.includes(shape));\n    shapeChoices.push(shape);\n  }\n  shapeChoices.sort(() => Math.random() - 0.5); // Shuffle the choices\n\n  answer = shapeChoices.indexOf(correctShape);\n  choices = shapeChoices.map(shape => shapes[shape].name);\n\n  questionElement.innerText = `{{text_question}} ${shapes[correctShape].name}?`;\n\n  shapeChoices.forEach((shape, index) => {\n    const choiceElement = choiceElements[index];\n    choiceElement.id = `choice_${index}`;\n    shapes[shape].function(`choice_${index}`, 100);\n  });\n\n  playerApi.sendEvent('task_loaded', {});\n}\n\nfunction init() {\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = `The current question is: 'Which shape is ${choices[answer]}?'. The multiple-choice list shows images of the following shapes: ${choices.join(', ')}. Therefore, choice number ${answer + 1} is the correct answer.`;\n    playerApi.sendEvent('task_details', {\n      staticInfo: taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n\n  playerApi.receiveEvent('evaluate', function() {\n    if (selected === null) {\n      playerApi.sendEvent('evaluationResult', { result: 'No choice selected' });\n      return;\n    }\n    const isCorrect = selected === answer;\n    playerApi.sendEvent('evaluationResult', { selected, answer, isCorrect });\n  });\n\n  playerApi.receiveEvent('refresh', function() {\n    choiceElements.forEach(choice => choice.classList.remove('selected'));\n    generateExercise();\n  });\n\n  playerApi.receiveEvent('choice_selected', function(event) {\n    const id = event.id;\n    selected = id;\n  });\n}\n\ninit();\ngenerateExercise();"
+}

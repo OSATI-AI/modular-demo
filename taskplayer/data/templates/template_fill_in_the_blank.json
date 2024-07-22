@@ -1,0 +1,13 @@
+{
+    "template_id": "template_fill_in_the_blank",
+    "title": "Fill in the Blank Template",
+    "example_task": "task_fraction_description",
+    "description": "A template with a question and a container for a fill-in-the-blank text.",
+    "events": {
+      "send": [],
+      "receive": []
+    },
+    "html": "<div class=\"question-container\">\n  <p id=\"question\"></p>\n  <div id=\"fill-in-the-blank-container\"></div> <!-- Empty container for the fill-in-the-blank text -->\n</div>",
+    "scripts": "function createLayout(details) {\n  const questionElement = document.getElementById('question');\n  const fillInTheBlankContainer = document.getElementById('fill-in-the-blank-container');\n  return { questionElement, fillInTheBlankContainer };\n}\n\nplayerApi.callTemplateScript = (method, details) => {\n  if (method === 'createLayout') {\n    return createLayout(details);\n  }\n};"
+  }
+  

@@ -169,7 +169,7 @@ class ConversationManager:
                 Do not set any further tasks yourself. Except as an example to help solve the current task. When the student has found the correct solution, tell them how they can enter this solution on the website (based on the task, e.g. either enter it in the input field or click on the correct option in multiple choice tasks, etc.).
                 Always remain polite and friendly. 
                 Phrase the tutor's final answer in simple and casual language to be on the same level as the student. Avoid technical terms that have not yet been explained. 
-                
+
                 ANALYSIS:
                 STUDENT: 
                 STRATEGY: 

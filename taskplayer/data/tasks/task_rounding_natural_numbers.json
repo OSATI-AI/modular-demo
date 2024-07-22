@@ -1,0 +1,24 @@
+{
+  "task_id": "task_rounding_natural_numbers",
+  "template_id": "template_question_answer",
+  "title": {
+    "english": "Rounding Natural Numbers",
+    "german": "Natürliche Zahlen runden"
+  },
+  "description": {
+    "english": "The student sees a number between 100 and 9999 and has to round it to the nearest hundred.",
+    "german": "Der Schüler sieht eine Zahl zwischen 100 und 9999 und muss sie auf die nächste Hunderterstelle runden."
+  },
+  "topic_id": 18,
+  "events": {
+    "send": ["evaluationResult", "task_details", "task_loaded"],
+    "receive": ["evaluate", "refresh", "get_task_details"]
+  },
+  "text": {
+    "text_question": {
+      "english": "Round to the nearest hundred.",
+      "german": "Runde auf die nächste Hunderterstelle."
+    }
+  },
+  "script": "let answer, number;\nconst { questionElement, answerElement } = playerApi.callTemplateScript('createLayout', {});\n\nfunction generateNumber() {\n  let num = 0;\n  while (num % 100 === 0) {\n    num = Math.floor(Math.random() * 9900) + 100;\n  }\n  return num;\n}\n\nfunction generateExercise() {\n  number = generateNumber();\n  answer = Math.round(number / 100) * 100;\n\n  questionElement.innerText = \"{{text_question}}\";\n  const questionSpan = document.createElement(\"span\");\n  const mf = document.createElement(\"math-field\");\n  mf.readonly = true;\n  mf.innerHTML = `${number}`;\n  questionSpan.appendChild(mf);\n  questionElement.appendChild(questionSpan);\n\n  const answerField = document.createElement(\"input\");\n  answerField.className = 'input input-bordered w-full max-w-xs';\n  answerField.id = 'answerField';\n  answerElement.appendChild(answerField);\n\n  playerApi.sendEvent('task_loaded', {});\n}\n\nfunction init() {\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = `The number that should be rounded is ${number}. Therefore, the correct answer is ${answer}.`;\n    playerApi.sendEvent('task_details', {\n      staticInfo: taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n\n  playerApi.receiveEvent('evaluate', function() {\n    const userAnswer = parseInt(document.getElementById('answerField').value, 10);\n    const isCorrect = userAnswer === answer;\n    playerApi.sendEvent('evaluationResult', { userAnswer, answer, isCorrect });\n  });\n\n  playerApi.receiveEvent('refresh', function() {\n    answerElement.innerHTML = '';\n    questionElement.innerHTML = '';\n    generateExercise();\n  });\n}\n\ninit();\ngenerateExercise();"
+}

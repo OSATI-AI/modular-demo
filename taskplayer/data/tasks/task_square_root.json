@@ -1,0 +1,24 @@
+{
+  "task_id": "task_square_root",
+  "template_id": "template_question_answer",
+  "title": {
+    "english": "Square Root",
+    "german": "Quadratwurzel"
+  },
+  "description": {
+    "english": "The student sees a mathematical term in which they have to calculate the square root of a square number.",
+    "german": "Der Schüler sieht einen mathematischen Ausdruck, in dem er die Quadratwurzel einer quadratischen Zahl berechnen muss."
+  },
+  "topic_id": 32,
+  "events": {
+    "send": ["evaluationResult", "task_details", "task_loaded"],
+    "receive": ["evaluate", "refresh", "get_task_details"]
+  },
+  "text": {
+    "text_question": {
+      "english": "Find the square root.",
+      "german": "Bestimme die Quadratwurzel."
+    }
+  },
+  "script": "let answer;\nconst { questionElement, answerElement } = playerApi.callTemplateScript('createLayout', {});\n\nfunction generateExercise() {\n  do {\n    answer = Math.floor(Math.random() * 9) + 2; // Random number between 2 and 10\n  } while (answer === 0);\n\n  const equation = `\\\\sqrt{${answer ** 2}} = \\\\placeholder[answer]{}`;\n\n  questionElement.innerText = \"{{text_question}}\";\n  const answerField = document.createElement(\"math-field\");\n  answerField.id = \"equation\";\n  answerField.className = 'w-48';\n  answerField.setValue(equation);\n  answerField.mathVirtualKeyboardPolicy = \"manual\";\n  answerField.readonly = true;\n  answerElement.append(answerField);\n\n  playerApi.sendEvent('task_loaded', {});\n}\n\nfunction init() {\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = `The current exercise is to find the square root of ${answer ** 2}. Therefore, the correct answer is ${answer}.`;\n    playerApi.sendEvent('task_details', {\n      staticInfo: taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n\n  playerApi.receiveEvent('evaluate', function() {\n    const userAnswer = parseInt(document.getElementById('equation').getPromptValue('answer'), 10);\n    const isCorrect = userAnswer === answer;\n    playerApi.sendEvent('evaluationResult', { userAnswer, answer, isCorrect });\n  });\n\n  playerApi.receiveEvent('refresh', function() {\n    answerElement.innerHTML = '';\n    questionElement.innerHTML = '';\n    generateExercise();\n  });\n}\n\ninit();\ngenerateExercise();"
+}

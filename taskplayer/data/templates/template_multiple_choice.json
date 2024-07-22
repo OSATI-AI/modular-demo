@@ -1,0 +1,13 @@
+{
+  "template_id": "template_multiple_choice",
+  "title": "Multiple Choice Template",
+  "example_task":"task_estimate_addition",
+  "description": "A template for multiple choice questions. It contains a question element and an arbitrary amount of multiple choice elements that can be filled with arbitrary content.",
+  "events": {
+    "send": ["choice_selected"],
+    "receive": ["refresh"]
+  },
+  "html": "<div class=\"question-container\">\n  <p id=\"question\"></p>\n  <div id=\"choices-container\"></div>\n</div>",
+  "styles": ".choice {\n  padding: 10px;\n  border: 1px solid #ccc;\n  cursor: pointer;\n  margin: 5px 0;\n}\n\n.choice.selected {\n  background-color: #d3d3d3;\n  border-color: #000;\n}\n\n.choice:hover {\n  background-color: #f0f0f0;\n}",
+  "scripts": "let selectedChoice = null;\n\nfunction createLayout(details) {\n  const questionElement = document.getElementById('question');\n  const choicesContainer = document.getElementById('choices-container');\n  choicesContainer.innerHTML = '';\n  const choiceElements = [];\n\n  for (let choiceIndex = 0; choiceIndex < details.choices; choiceIndex++) {\n    const choiceElement = document.createElement('div');\n    choiceElement.classList.add('choice');\n    choiceElement.addEventListener('click', () => selectChoice(choiceElement, choiceIndex, details.choicesData[choiceIndex]));\n    choicesContainer.appendChild(choiceElement);\n    choiceElements.push(choiceElement);\n  }\n\n  return { questionElement, choiceElements };\n}\n\nfunction selectChoice(choiceElement, id, content) {\n  if (selectedChoice) {\n    selectedChoice.classList.remove('selected');\n  }\n  choiceElement.classList.add('selected');\n  selectedChoice = choiceElement;\n  playerApi.sendEvent('choice_selected', { id, content });\n}\n\nplayerApi.callTemplateScript = (method, details) => {\n  switch (method) {\n    case 'createLayout':\n      return createLayout(details);\n    default:\n      throw new Error(`Unknown method: ${method}`);\n  }\n};\n\nplayerApi.receiveEvent('refresh', function() {\n  selectedChoice = null;\n});"
+  }

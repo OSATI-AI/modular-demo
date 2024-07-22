@@ -1,0 +1,14 @@
+{
+    "template_id": "template_word_selection",
+    "title": "Word Selection Template",
+    "example_task":"task_fraction_word_selection",
+    "description": "A template that allows inputting a description by selecting words from buttons.",
+    "events": {
+      "send": ["words_selected"],
+      "receive": ["set_words", "set_display", "refresh"]
+    },
+    "html": "<div class=\"word-selection-container\">\n  <h2 id=\"question\"></h2>\n  <div id=\"display\"></div>\n  <div id=\"word-container\"></div>\n  <div id=\"input-container\">\n    <div id=\"selected-words\" class=\"selected-words\"></div>\n  </div>\n</div>",
+    "styles": ".selected-words {\n  border: 2px solid #000;\n  padding: 10px;\n  min-height: 50px;\n}\n.word-button {\n  display: inline-block;\n  margin: 5px;\n  padding: 10px;\n  background-color: #ccc;\n  cursor: pointer;\n}\n.word-button.selected {\n  background-color: #6c757d;\n  color: #fff;\n}\n",
+    "scripts": "let selectedWords = [];\n\nfunction createLayout(details) {\n  const questionElement = document.getElementById('question');\n  const displayElement = document.getElementById('display');\n  const wordContainer = document.getElementById('word-container');\n  const selectedWordsElement = document.getElementById('selected-words');\n  return { questionElement, displayElement, wordContainer, selectedWordsElement };\n}\n\nfunction addWord(word, button) {\n  if (selectedWords.includes(word)) {\n    selectedWords = selectedWords.filter(w => w !== word);\n    button.classList.remove('selected');\n  } else {\n    selectedWords.push(word);\n    button.classList.add('selected');\n  }\n  updateSelectedWords();\n}\n\nfunction updateSelectedWords() {\n  const selectedWordsElement = document.getElementById('selected-words');\n  selectedWordsElement.innerText = selectedWords.join(' ');\n  playerApi.sendEvent('words_selected', { selectedWords });\n}\n\nplayerApi.callTemplateScript = (method, details) => {\n  if (method === 'createLayout') {\n    return createLayout(details);\n  }\n};\n\nplayerApi.receiveEvent('set_words', function(event) {\n  const words = event.words;\n  const wordContainer = document.getElementById('word-container');\n  wordContainer.innerHTML = words.map(word => `<div class='word-button' data-word='${word}'>${word}</div>`).join('');\n\n  document.querySelectorAll('.word-button').forEach(button => {\n    button.addEventListener('click', function() {\n      addWord(this.getAttribute('data-word'), this);\n    });\n  });\n});\n\nplayerApi.receiveEvent('set_display', function(event) {\n  const displayContent = event.displayContent;\n  const displayElement = document.getElementById('display');\n  displayElement.innerHTML = displayContent;\n});\n\nplayerApi.receiveEvent('refresh', function() {\n  selectedWords = [];\n  updateSelectedWords();\n  document.querySelectorAll('.word-button').forEach(button => button.classList.remove('selected'));\n});"
+  }
+  

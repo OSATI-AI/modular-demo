@@ -9,6 +9,7 @@
     <script defer src="//unpkg.com/mathlive"></script>
     <script async src="{% static 'chat-widget.js' %}"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.min.js"></script>
     <script>
         function toggleVisibility(element) {
             var nextElement = element.nextElementSibling;
@@ -115,8 +116,6 @@
         </div>
     </div>
 
-    <!-- Importing the YAML parser library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.14.0/js-yaml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <!-- Importing the task player script -->
     <script src="{% static 'task_player.js' %}" type="module"></script>
@@ -135,8 +134,6 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.task && data.template) {
-                        
-                        console.log("P5JS: ", data.p5js)
 
                         if (data.p5js != "None" && data.p5js != ""){
                             var script = document.createElement('script');

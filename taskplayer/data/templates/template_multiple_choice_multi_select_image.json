@@ -1,0 +1,13 @@
+{
+  "template_id": "template_multiple_choice_multi_select_image",
+  "title": "Multiple Choice Multi Select Template",
+  "example_task": "task_pizza_sharing",
+  "description": "A template for multiple choice questions with checkboxes allowing multiple selections. It contains a question element, an image placeholder, and multiple choice elements.",
+  "events": {
+    "send": ["choices_selected"],
+    "receive": ["refresh"]
+  },
+  "html": "<div class=\"question-container\">\n  <p id=\"question\"></p>\n  <div id=\"image_placeholder\"></div>\n  <div id=\"choices-container\"></div>\n</div>",
+  "styles": ".choice {\n  padding: 10px;\n  border: 1px solid #ccc;\n  cursor: pointer;\n  margin: 5px 0;\n  display: flex;\n  align-items: center;\n}\n\n.choice.selected {\n  background-color: #d3d3d3;\n  border-color: #000;\n}\n\n.choice:hover {\n  background-color: #f0f0f0;\n}",
+  "scripts": "let selectedChoices = [];\n\nfunction createLayout(details) {\n  const questionElement = document.getElementById('question');\n  const image_placeholder = document.getElementById('image_placeholder');\n  const choicesContainer = document.getElementById('choices-container');\n  choicesContainer.innerHTML = '';\n  const choiceElements = [];\n  for (let i = 0; i < details.choices; i++) {\n    const choiceElement = document.createElement('div');\n    choiceElement.classList.add('choice');\n    const checkbox = document.createElement('input');\n    checkbox.type = 'checkbox';\n    checkbox.addEventListener('click', () => selectChoice(checkbox, i));\n    choiceElement.appendChild(checkbox);\n    const label = document.createElement('label');\n    label.innerText = details.choicesData[i];\n    choiceElement.appendChild(label);\n    choicesContainer.appendChild(choiceElement);\n    choiceElements.push(choiceElement);\n  }\n  return { questionElement, image_placeholder, choiceElements };\n}\n\nfunction selectChoice(checkbox, id) {\n  console.log(`selectChoice called with id: ${id}, checked: ${checkbox.checked}`);\n  if (checkbox.checked) {\n    selectedChoices.push(id);\n  } else {\n    selectedChoices = selectedChoices.filter(choiceId => choiceId !== id);\n  }\n  playerApi.sendEvent('choices_selected', selectedChoices.map(id => ({ id })));\n}\n\nplayerApi.callTemplateScript = (method, details) => {\n  if (method === 'createLayout') {\n    return createLayout(details);\n  }\n};\n\nplayerApi.receiveEvent('refresh', function() {\n  console.log(\"REFRESH\");\n  selectedChoices = [];\n  document.querySelectorAll('.choice input').forEach(checkbox => checkbox.checked = false);\n});"
+}

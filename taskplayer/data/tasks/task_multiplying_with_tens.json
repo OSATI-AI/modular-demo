@@ -1,0 +1,24 @@
+{
+  "task_id": "task_multiplying_by_tens",
+  "template_id": "template_question_answer",
+  "title": {
+    "english": "Multiplying by Tens",
+    "german": "Mit Zehnern multiplizieren"
+  },
+  "description": {
+    "english": "The student sees a multiplication exercise where both numbers are multiples of 10. The student has to find the solution of the multiplication.",
+    "german": "Der Schüler sieht eine Multiplikationsaufgabe, bei der beide Zahlen Vielfache von 10 sind. Der Schüler muss die Lösung der Multiplikation finden."
+  },
+  "topic_id": 17,
+  "events": {
+    "send": ["evaluationResult", "task_details", "task_loaded"],
+    "receive": ["evaluate", "refresh", "get_task_details"]
+  },
+  "text": {
+    "text_question": {
+      "english": "Multiply.",
+      "german": "Multipliziere."
+    }
+  },
+  "script": "let answer, n1, n2;\nconst { questionElement, answerElement } = playerApi.callTemplateScript('createLayout', {});\n\nfunction generateExercise() {\n  n1 = Math.floor(Math.random() * 9 + 1) * 10;\n  n2 = Math.floor(Math.random() * 9 + 1) * 10;\n\n  answer = n1 * n2;\n  const equation = `${n1} \\\\cdot ${n2} = \\\\placeholder[answer]{}`;\n\n  questionElement.innerText = \"{{text_question}}\";\n  const answerField = document.createElement(\"math-field\");\n  answerField.id = \"equation\";\n  answerField.className = 'w-48';\n  answerField.setValue(equation);\n  answerField.mathVirtualKeyboardPolicy = \"manual\";\n  answerField.readonly = true;\n  answerElement.append(answerField);\n\n  playerApi.sendEvent('task_loaded', {});\n}\n\nfunction init() {\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = `The current exercise is ${n1} * ${n2}. Therefore, the correct answer is ${answer}.`;\n    playerApi.sendEvent('task_details', {\n      staticInfo: taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n\n  playerApi.receiveEvent('evaluate', function() {\n    const userAnswer = parseInt(document.getElementById('equation').getPromptValue('answer'), 10);\n    const isCorrect = userAnswer === answer;\n    playerApi.sendEvent('evaluationResult', { userAnswer, answer, isCorrect });\n  });\n\n  playerApi.receiveEvent('refresh', function() {\n    answerElement.innerHTML = '';\n    generateExercise();\n  });\n}\n\ninit();\ngenerateExercise();"
+}

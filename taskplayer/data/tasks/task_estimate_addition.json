@@ -1,0 +1,28 @@
+{
+  "task_id": "task_estimate_addition",
+  "template_id": "template_multiple_choice",
+  "title": {
+    "english": "Estimate Addition",
+    "german": "Schätze Addition"
+  },
+  "description": {
+    "english": "The student has to estimate the solution of an addition problem with two floating point numbers by rounding them and adding the rounded numbers together. This is a multiple choice exercise where only one choice is the correct answer.",
+    "german": "Der Schüler muss die Lösung eines Additionsproblems mit zwei Gleitkommazahlen schätzen, indem er sie aufrundet und die gerundeten Zahlen zusammenzählt. Dies ist eine Multiple-Choice-Aufgabe, bei der nur eine Wahl die richtige Antwort ist."
+  },
+  "topic_id": 18,
+  "events": {
+    "send": ["evaluationResult", "task_details", "task_loaded"],
+    "receive": ["evaluate", "refresh", "get_task_details", "choice_selected"]
+  },
+  "text": {
+    "text_question": {
+      "english": "Estimate: ",
+      "german": "Schätze: "
+    },
+    "text_no_choice": {
+      "english": "No choice selected",
+      "german": "Keine Auswahl getroffen"
+    }
+  },
+  "script": "let num1, num2, answer, choices;\nconst NUM_CHOICES = 4;\nlet selectedChoice = null;\nconst { questionElement, choiceElements } = playerApi.callTemplateScript('createLayout', { choices: NUM_CHOICES, choicesData: [] });\n\nfunction generateExercise() {\n  num1 = (Math.random() * 98 + 1).toFixed(2);\n  num2 = (Math.random() * 98 + 1).toFixed(2);\n\n  const correct = Math.round(num1) + Math.round(num2);\n  choices = [correct];\n  for (let i = 0; i < NUM_CHOICES - 1; i++) {\n    let delta;\n    do {\n      delta = Math.floor(Math.random() * 21) - 10;\n    } while (choices.includes(correct + delta));\n    choices.push(correct + delta);\n  }\n\n  choices.sort((a, b) => a - b);\n  answer = choices.indexOf(correct);\n  questionElement.innerText = `{{text_question}} ${num1} + ${num2} = `;\n  choices.forEach((choice, index) => {\n    choiceElements[index].innerText = choice;\n  });\n\n  playerApi.sendEvent('task_loaded', {});\n}\n\nfunction init() {\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = `The exercise is ${num1} + ${num2}. The possible choices are: ${choices}. The correct answer is choice number ${answer + 1}, which is ${choices[answer]}.`;\n    playerApi.sendEvent('task_details', {\n      staticInfo: taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n\n  playerApi.receiveEvent('evaluate', function() {\n    if (selectedChoice === null || selectedChoice === undefined) {\n      playerApi.sendEvent('evaluationResult', { result: '{{text_no_choice}}' });\n      return;\n    }\n    const isCorrect = selectedChoice === answer;\n    playerApi.sendEvent('evaluationResult', {\n      selectedId: selectedChoice,\n      selectedContent: choices[selectedChoice],\n      isCorrect\n    });\n  });\n\n  playerApi.receiveEvent('refresh', function() {\n    choiceElements.forEach(choice => choice.classList.remove('selected'));\n    selectedChoice = null;\n    generateExercise();\n  });\n\n  playerApi.receiveEvent('choice_selected', function(event) {\n    const id  = event.id;\n    selectedChoice = id;\n  });\n}\n\ninit();\ngenerateExercise();"
+}

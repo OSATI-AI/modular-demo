@@ -6,15 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Generator</title>
     <script defer src="//unpkg.com/mathlive"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.14.0/js-yaml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/yaml/yaml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.14.0/js-yaml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.min.js"></script>
     <link rel="stylesheet" href="{% static 'styles/generate.css' %}">
 
     <script>
@@ -78,6 +76,7 @@
                 <div id="chat_input">
                     <input type="text" id="chatInput" placeholder="Type your message...">
                     <button id = "btn-send">Send</button>
+                    <button id="btn-upload">Upload Image</button>
                 </div>
             </div>
         </div>
@@ -127,16 +126,34 @@
             <div id="spinner"></div>
         </div>
     </div>
+
+    <div id="upload-dialog" class="upload-dialog" style="display:none;">
+        <div class="upload-dialog-content">
+            <h2>Upload Image</h2>
+            <input type="file" id="image-input" accept="image/*" style="display:none;" />
+            <div id="drop-zone" class="drop-zone">Drag & Drop Image Here or Click to Select</div>
+            <div id="image-preview" class="image-preview" style="display:none;">
+                <img id="preview-img" src="" alt="Image Preview">
+                <div id="trash-icon" class="trash-icon">🗑️</div>
+            </div>
+            <div class="upload-dialog-buttons">
+                <button id="cancel-upload-btn">Cancel</button>
+                <button id="upload-btn">Upload</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import TaskPlayer from '{% static "task_player.js" %}';
     
         const player_config = { externalScriptsPath: '{% static "scripts/" %}' }
         const player = new TaskPlayer('preview', player_config);
     
-        let dialog = "None";
-        let currentTask = "None";
-        let currentTemplate = "None";
-        let currentP5js = "None"
+        let dialog = "";
+        let currentTask = null;
+        let currentTemplate = null;
+        let currentP5js = null;
+        let currentImagePath = null; 
     
         document.getElementById('check-btn').addEventListener('click', () => {
             const customEvent = new CustomEvent('parentEvent', {
@@ -152,14 +169,12 @@
             document.dispatchEvent(customEvent);
         });
 
-        document.getElementById('save-task-btn').addEventListener('click', () => {
-            const taskObject = parseYaml(currentTask);
-            
+        document.getElementById('save-task-btn').addEventListener('click', () => {            
             // Fill the popup with current task details
-            document.getElementById('title-english').value = taskObject.title.english || '';
-            document.getElementById('title-german').value = taskObject.title.german || '';
-            document.getElementById('description-english').value = taskObject.description.english || '';
-            document.getElementById('description-german').value = taskObject.description.german || '';
+            document.getElementById('title-english').value = currentTask.title.english || '';
+            document.getElementById('title-german').value = currentTask.title.german || '';
+            document.getElementById('description-english').value = currentTask.description.english || '';
+            document.getElementById('description-german').value = currentTask.description.german || '';
             
             // Show the popup
             document.getElementById('popup').style.display = 'block';
@@ -169,17 +184,12 @@
             document.getElementById('popup').style.display = 'none';
         });
 
-        document.getElementById('save-popup-btn').addEventListener('click', async () => {
-            const taskObject = parseYaml(currentTask);
-            
+        document.getElementById('save-popup-btn').addEventListener('click', async () => {            
             // Update task object with new values from the popup
-            taskObject.title.english = document.getElementById('title-english').value;
-            taskObject.title.german = document.getElementById('title-german').value;
-            taskObject.description.english = document.getElementById('description-english').value;
-            taskObject.description.german = document.getElementById('description-german').value;
-
-            // Convert the updated task object back to a YAML string
-            currentTask = toYamlString(taskObject);
+            currentTask.title.english = document.getElementById('title-english').value;
+            currentTask.title.german = document.getElementById('title-german').value;
+            currentTask.description.english = document.getElementById('description-english').value;
+            currentTask.description.german = document.getElementById('description-german').value;
 
             // Close the popup
             document.getElementById('popup').style.display = 'none';
@@ -220,26 +230,11 @@
             }
         });
 
-        function parseYaml(yamlString) {
-            try {
-                return jsyaml.load(yamlString);
-            } catch (e) {
-                console.error('Error parsing YAML:', e);
-                return null;
-            }
-        }
-
-        function toYamlString(yamlObject) {
-            try {
-                return jsyaml.dump(yamlObject);
-            } catch (e) {
-                console.error('Error converting to YAML string:', e);
-                return '';
-            }
-        }
-
         document.addEventListener('evaluationResult', (event) => {
             const evaluationResult = event.detail;
+
+            console.log(evaluationResult)
+
             if (evaluationResult.isCorrect) {
                 displaySuccessFeedback();
             } else {
@@ -316,9 +311,6 @@
             chatHistory.scrollTop = chatHistory.scrollHeight;
     
             // Add to dialog
-            if (dialog == "None") {
-                dialog = ""
-            }
             dialog += `user: ${message}\n`;
     
             // Show spinner and set preview opacity
@@ -338,6 +330,7 @@
                     template: currentTemplate,
                     dialog: dialog,
                     p5js: currentP5js, 
+                    image:currentImagePath,
                     language: getLanguage() // Send selected language to the backend
                 })
             });
@@ -356,7 +349,7 @@
             // Add to dialog
             dialog += `assistant: ${data.message}\n`;
             
-            if (data.p5js != "None" && data.p5js != ""){
+            if (data.p5js != null && data.p5js != ""){
                 var script = document.createElement('script');
                 script.type = 'text/javascript';
                 script.textContent  = data.p5js  
@@ -416,38 +409,14 @@
             let isCodeView = false;
             let textEditor, eventsEditor, scriptEditor;
 
-            function parseYaml(yamlString) {
-                try {
-                    return jsyaml.load(yamlString);
-                } catch (e) {
-                    console.error('Error parsing YAML:', e);
-                    return null;
-                }
-            }
-
-            function toYamlString(yamlObject) {
-                try {
-                    return jsyaml.dump(yamlObject);
-                } catch (e) {
-                    console.error('Error converting to YAML string:', e);
-                    return '';
-                }
-            }
-
             toggleViewBtn.addEventListener('click', () => {
                 if (isCodeView) {
                     previewContainer.innerHTML = ''; // Clear the preview container
 
                     // Collect the updated content from the editors
-                    const taskObject = parseYaml(currentTask);
-                    taskObject.text = parseYaml(textEditor.getValue());
-                    taskObject.events = parseYaml(eventsEditor.getValue());
-                    taskObject.script = scriptEditor.getValue();
-
-                    // Convert the updated task object back to a YAML string
-                    currentTask = toYamlString(taskObject);
-
-                    console.log(currentTask)
+                    currentTask.text = JSON.parse(textEditor.getValue());
+                    currentTask.events = JSON.parse(eventsEditor.getValue());
+                    currentTask.script = scriptEditor.getValue();
 
                     // Switch back to preview mode
                     player.openTask(currentTask, currentTemplate, getLanguage());
@@ -456,7 +425,6 @@
                     toggleIcon.textContent = '🔍'; // Set to code icon
                 } else {
                     // Switch to code view
-                    const taskObject = parseYaml(currentTask);
                     previewContainer.innerHTML = ''; // Clear the preview container
 
                     // Create separate editors for each field
@@ -464,9 +432,9 @@
                     const textAreaEvents = document.createElement('textarea');
                     const textAreaScript = document.createElement('textarea');
 
-                    textAreaText.value = toYamlString(taskObject.text);
-                    textAreaEvents.value = toYamlString(taskObject.events);
-                    textAreaScript.value = taskObject.script;
+                    textAreaText.value = JSON.stringify(currentTask.text);
+                    textAreaEvents.value = JSON.stringify(currentTask.events);
+                    textAreaScript.value = currentTask.script;
 
                     // Add headlines
                     const labelText = document.createElement('h3');
@@ -486,13 +454,13 @@
 
                     // Initialize CodeMirror editors
                     textEditor = CodeMirror.fromTextArea(textAreaText, {
-                        mode: 'yaml',
+                        mode: 'json',
                         lineNumbers: true,
                         theme: 'monokai',
                     });
 
                     eventsEditor = CodeMirror.fromTextArea(textAreaEvents, {
-                        mode: 'yaml',
+                        mode: 'json',
                         lineNumbers: true,
                         theme: 'monokai',
                     });
@@ -525,7 +493,140 @@
             languageLabel.innerText = 'Choose Language';
             taskCollectionButton.innerText = 'Task Collection';
         }
+
+
+        document.getElementById('btn-upload').addEventListener('click', () => {
+            document.getElementById('upload-dialog').style.display = 'block';
+        });
+
+        document.getElementById('cancel-upload-btn').addEventListener('click', () => {
+            document.getElementById('upload-dialog').style.display = 'none';
+            resetUploadDialog();
+        });
+
+        document.getElementById('upload-btn').addEventListener('click', async () => {            
+            // Get the file from the input
+            const fileInput = document.getElementById('image-input');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select an image file.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            // Close the popup
+            document.getElementById('upload-dialog').style.display = 'none';
+
+            // Show spinner overlay
+            document.getElementById('spinner-overlay').style.display = 'flex';
+
+            try {
+                const response = await fetch('/upload_image', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken') // Assuming CSRF token is named 'csrftoken'
+                    },
+                    body: formData
+                });
+
+                // Hide spinner overlay
+                document.getElementById('spinner-overlay').style.display = 'none';
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentImagePath = data.path;
+                    console.log(currentImagePath)
+                    // Show success message overlay
+                    document.getElementById('success-message-overlay').style.display = 'flex';
+
+                    // Confetti effect
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+
+                    // Hide success message overlay after a few seconds
+                    setTimeout(() => {
+                        document.getElementById('success-message-overlay').style.display = 'none';
+                    }, 3000);
+                } else {
+                    alert('Failed to upload image.');
+                }
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                alert('An error occurred while uploading the image.');
+            }
+        });
+
+        
+        // Drag and drop functionality
+        const dropZone = document.getElementById('drop-zone');
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+            dropZone.classList.add('glow');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+            dropZone.classList.remove('glow');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            dropZone.classList.remove('glow');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('image-input').files = files;
+                showImagePreview(files[0]);
+            }
+        });
+
+        dropZone.addEventListener('click', () => {
+            document.getElementById('image-input').click();
+        });
+
+        document.getElementById('image-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                showImagePreview(file);
+            }
+        });
+
+        document.getElementById('trash-icon').addEventListener('click', () => {
+            resetUploadDialog();
+        });
+
+        function showImagePreview(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('preview-img').src = e.target.result;
+                document.getElementById('drop-zone').style.display = 'none';
+                document.getElementById('image-preview').style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetUploadDialog() {
+            document.getElementById('drop-zone').style.display = 'flex';
+            document.getElementById('image-preview').style.display = 'none';
+            document.getElementById('preview-img').src = '';
+            document.getElementById('image-input').value = '';
+        }
+
+
+
+
+
     }
+
+        
+
 
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('language-select').value = getLanguage();
