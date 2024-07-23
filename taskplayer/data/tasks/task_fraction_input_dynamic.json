@@ -1,0 +1,117 @@
+{
+    "task_id": "task_fraction_input_dynamic",
+    "template_id": "template_fraction_input",
+    "title": {
+      "english": "Dynamic Fraction Input Example",
+      "german": "Dynamisches Bruch Eingabe Beispiel"
+    },
+    "description": {
+      "english": "The student has to fill in the blanks with appropriate numbers to represent the given fraction.",
+      "german": "Der Schüler muss die Lücken mit den passenden Zahlen füllen, um den gegebenen Bruch darzustellen."
+    },
+    "topic_id": 16,
+    "events": {
+      "send": ["evaluationResult", "task_details", "task_loaded"],
+      "receive": ["evaluate", "refresh", "get_task_details"]
+    },
+    "text": {
+      "text_question": {
+        "english": "Write as a fraction",
+        "german": "Schreibe als Bruch"
+      },
+      "nom_1": {
+        "german": "ein",
+        "english": "one"
+      },
+      "nom_2": {
+        "german": "zwei",
+        "english": "two"
+      },
+      "denom_2": {
+        "german": "halbe",
+        "english": "half"
+      },
+      "nom_3": {
+        "german": "drei",
+        "english": "three"
+      },
+      "denom_3": {
+        "german": "drittel",
+        "english": "third"
+      },
+      "nom_4": {
+        "german": "vier",
+        "english": "four"
+      },
+      "denom_4": {
+        "german": "viertel",
+        "english": "quarter"
+      },
+      "nom_5": {
+        "german": "fünf",
+        "english": "five"
+      },
+      "denom_5": {
+        "german": "fünftel",
+        "english": "fifth"
+      },
+      "nom_6": {
+        "german": "sechs",
+        "english": "six"
+      },
+      "denom_6": {
+        "german": "sechstel",
+        "english": "sixth"
+      },
+      "nom_7": {
+        "german": "sieben",
+        "english": "seven"
+      },
+      "denom_7": {
+        "german": "siebtel",
+        "english": "seventh"
+      },
+      "nom_8": {
+        "german": "acht",
+        "english": "eight"
+      },
+      "denom_8": {
+        "german": "achtel",
+        "english": "eighth"
+      },
+      "nom_9": {
+        "german": "neun",
+        "english": "nine"
+      },
+      "denom_9": {
+        "german": "neuntel",
+        "english": "ninth"
+      },
+      "nom_10": {
+        "german": "zehn",
+        "english": "ten"
+      },
+      "denom_10": {
+        "german": "zehntel",
+        "english": "tenth"
+      },
+      "nom_11": {
+        "german": "elf",
+        "english": "eleven"
+      },
+      "denom_11": {
+        "german": "elftel",
+        "english": "eleventh"
+      },
+      "nom_12": {
+        "german": "zwölf",
+        "english": "twelve"
+      },
+      "denom_12": {
+        "german": "zwölftel",
+        "english": "twelfth"
+      }
+    },
+    "script": "let correctAnswers, numerator, denominator, fractionDescription;\n\n// Call the template's createLayout method to initialize the layout\nconst { questionElement, numeratorInput, denominatorInput } = playerApi.callTemplateScript('createLayout', {});\n\n// Define the words for numerators and denominators\nconst numberWords = {\n  1: { nominator: \"{{nom_1}}\" },\n  2: { nominator: \"{{nom_2}}\", denominator: \"{{denom_2}}\" },\n  3: { nominator: \"{{nom_3}}\", denominator: \"{{denom_3}}\" },\n  4: { nominator: \"{{nom_4}}\", denominator: \"{{denom_4}}\" },\n  5: { nominator: \"{{nom_5}}\", denominator: \"{{denom_5}}\" },\n  6: { nominator: \"{{nom_6}}\", denominator: \"{{denom_6}}\" },\n  7: { nominator: \"{{nom_7}}\", denominator: \"{{denom_7}}\" },\n  8: { nominator: \"{{nom_8}}\", denominator: \"{{denom_8}}\" },\n  9: { nominator: \"{{nom_9}}\", denominator: \"{{denom_9}}\" },\n  10: { nominator: \"{{nom_10}}\", denominator: \"{{denom_10}}\" },\n  11: { nominator: \"{{nom_11}}\", denominator: \"{{denom_11}}\" },\n  12: { nominator: \"{{nom_12}}\", denominator: \"{{denom_12}}\" }\n};\n\n// Function to generate a new exercise\nfunction generateExercise() {\n  // Randomly generate numerator and denominator\n  numerator = Math.floor(Math.random() * 12) + 1;\n  denominator = Math.floor(Math.random() * 11) + 2;\n\n  // Create the fraction description using the generated numbers\n  fractionDescription = `${numberWords[numerator].nominator} ${numberWords[denominator].denominator}`;\n\n  // Set the correct answers for evaluation\n  correctAnswers = {\n    'numerator': [numerator.toString()],\n    'denominator': [denominator.toString()]\n  };\n\n  // Set the question text and display the fraction description\n  questionElement.innerHTML = `<p>{{text_question}}</p><p style='font-size: 24px; font-weight: bold;'>${fractionDescription}</p>`;\n  // Clear the input fields\n  numeratorInput.value = '';\n  denominatorInput.value = '';\n  // Send event indicating the task is loaded\n  playerApi.sendEvent('task_loaded', {});\n}\n\n// Function to normalize user answers for comparison\nfunction normalizeAnswer(answer) {\n  return answer.trim().toLowerCase();\n}\n\n// Initialization function\nfunction init() {\n  // Handle event to get task details\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = `The task requires filling in the numerator and denominator fields to represent the fraction described as '${fractionDescription}'. The correct answer is ${numerator}/${denominator}.`;\n    playerApi.sendEvent('task_details', {\n      staticInfo: taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n\n  // Handle evaluation event\n  playerApi.receiveEvent('evaluate', function() {\n    const userAnswers = {\n      'numerator': normalizeAnswer(numeratorInput.value),\n      'denominator': normalizeAnswer(denominatorInput.value)\n    };\n    const isCorrect = Object.keys(correctAnswers).every(key => {\n      return correctAnswers[key].includes(userAnswers[key]);\n    });\n    playerApi.sendEvent('evaluationResult', { userAnswers, correctAnswers, isCorrect });\n  });\n\n  // Handle refresh event\n  playerApi.receiveEvent('refresh', function() {\n    generateExercise();\n  });\n}\n\n// Initialize and generate the first exercise\ninit();\ngenerateExercise();"
+  }
+  

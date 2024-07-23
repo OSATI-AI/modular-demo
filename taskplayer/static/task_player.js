@@ -101,14 +101,12 @@
     }
   
     sendEvent(event, data) {
-      console.log("Send event", event)
       const customEvent = new CustomEvent(event, { detail: data });
       document.dispatchEvent(customEvent);
       this.routeEvent(event,data)
     }
   
     receiveEvent(event, callback) {
-      console.log("receive event", event)
       if (!this.events[event]) {
         this.events[event] = [];
       }

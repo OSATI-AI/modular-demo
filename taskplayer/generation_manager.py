@@ -361,6 +361,11 @@ class GenerationManager:
         If your code contains multiple functions
         you only should provide a documentation for the main function that can be called from other scripts. Provide a description
         of what the fuctions does as well as a short example code on how to use it.
+        
+        Then you should call your created p5js function from the javascript code inside the task to display it.
+        You can always assume that your p5js code is available in the current scope, so you can just call the function from your
+        task script. Please put no other p5js related code inside the task script but allm of the p5js code should be put into a
+        separate field in the output object as described below. 
         """
 
     def prompt_topic_id(self, task_description, topics_lookup):
