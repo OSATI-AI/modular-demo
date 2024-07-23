@@ -1,12 +1,12 @@
 {
   "template_id": "template_question_answer",
-  "title": "Simple Input Template",
-  "example_task":"task_multiplying_with_tens",
-  "description": "A template with a question and a container for an input field or any other element.",
+  "title": "Question Answer Template",
+  "example_task": "task_gradient",
+  "description": "A template with a question, an optional figure placeholder, and a container for an input field. The figure placeholder can be left blank when it is not needed by a task.",
   "events": {
-    "send": [],
+    "send": ["input"],
     "receive": []
   },
-  "html": "<div class=\"question-container\">\n  <p id=\"question\"></p>\n  <div id=\"answer\"></div> <!-- Empty container for the answer element -->\n</div>",
-  "scripts": "function createLayout(details) {\n  const questionElement = document.getElementById('question');\n  const answerElement = document.getElementById('answer');\n  return { questionElement, answerElement };\n}\n\nplayerApi.callTemplateScript = (method, details) => {\n  if (method === 'createLayout') {\n    return createLayout(details);\n  }\n};"
+  "html": "<div class=\"question-container\">\n  <p id=\"question\"></p>\n  <div id=\"image_placeholder\"></div>\n  <div id=\"answer\"></div> <!-- Empty container for the answer element -->\n</div>",
+  "scripts": "function createLayout(details) {\n  // Get the question element by its ID\n  const questionElement = document.getElementById('question');\n\n  // Get the image placeholder element by its ID (optional)\n  const imagePlaceholder = document.getElementById('image_placeholder');\n\n  // Get the answer element by its ID\n  const answerElement = document.getElementById('answer');\n\n  // Return an object containing references to the three elements\n  return { questionElement, imagePlaceholder, answerElement };\n}\n\n// Override the callTemplateScript method of playerApi\nplayerApi.callTemplateScript = (method, details) => {\n  // Check if the method called is 'createLayout'\n  if (method === 'createLayout') {\n    // Call the createLayout function with the provided details\n    return createLayout(details);\n  }\n};\n\n/*\nUsage Instructions:\n- This template is designed for tasks that require a question, an optional figure, and an input field for an answer.\n- The task should call the 'createLayout' method to initialize the layout.\n- The details object passed to 'createLayout' should include:\n  - `question`: The question text to be displayed.\n  - `figure`: (Optional) The URL of the figure to be displayed in the image placeholder.\n  - `answerField`: The input field where the student will provide their answer.\n\nExample Task Setup:\n- The task calls `playerApi.callTemplateScript('createLayout', details);` where `details` includes:\n  - `question`: The question text (e.g., 'What is the gradient of the line?').\n  - `figure`: (Optional) The URL of the figure (e.g., '/media/line_graph.png').\n  - `answerField`: The input field for the answer (e.g., '<input type=\"text\" id=\"answer_input\"/>').\n\nCommunication Between Template and Task:\n- The template can send events such as 'input' when the student inputs an answer.\n*/"
 }

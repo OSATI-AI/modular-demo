@@ -1,13 +1,12 @@
 {
-    "template_id": "template_fill_in_the_blank",
-    "title": "Fill in the Blank Template",
-    "example_task": "task_fraction_description",
-    "description": "A template with a question and a container for a fill-in-the-blank text.",
-    "events": {
-      "send": [],
-      "receive": []
-    },
-    "html": "<div class=\"question-container\">\n  <p id=\"question\"></p>\n  <div id=\"fill-in-the-blank-container\"></div> <!-- Empty container for the fill-in-the-blank text -->\n</div>",
-    "scripts": "function createLayout(details) {\n  const questionElement = document.getElementById('question');\n  const fillInTheBlankContainer = document.getElementById('fill-in-the-blank-container');\n  return { questionElement, fillInTheBlankContainer };\n}\n\nplayerApi.callTemplateScript = (method, details) => {\n  if (method === 'createLayout') {\n    return createLayout(details);\n  }\n};"
-  }
-  
+  "template_id": "template_fill_in_the_blank",
+  "title": "Fill in the Blank Template",
+  "example_task": "task_fraction_description",
+  "description": "A template designed for tasks that require a question and a fill-in-the-blank text. The layout consists of a question element, an optional image placeholder, and a container for the fill-in-the-blank text. This template is used for exercises where students need to complete sentences or equations by filling in the blanks. The image placeholder is optional and can be left blank if not needed by the task.",
+  "events": {
+    "send": [],
+    "receive": []
+  },
+  "html": "<div class=\"question-container\">\n  <p id=\"question\"></p>\n  <div id=\"image_placeholder\"></div>\n  <div id=\"fill-in-the-blank-container\"></div> <!-- Empty container for the fill-in-the-blank text -->\n</div>",
+  "scripts": "function createLayout(details) {\n  // Get the question element by its ID\n  const questionElement = document.getElementById('question');\n  \n  // Get the image placeholder element by its ID (optional)\n  const imagePlaceholder = document.getElementById('image_placeholder');\n  \n  // Get the fill-in-the-blank container element by its ID\n  const fillInTheBlankContainer = document.getElementById('fill-in-the-blank-container');\n  \n  // Return an object containing references to the elements\n  return { questionElement, imagePlaceholder, fillInTheBlankContainer };\n}\n\n// Override the callTemplateScript method of playerApi to handle method calls\n// This allows tasks to communicate with the template by calling this method\nplayerApi.callTemplateScript = (method, details) => {\n  if (method === 'createLayout') {\n    // Call the createLayout function with the provided details\n    return createLayout(details);\n  }\n};\n\n/*\nUsage Instructions:\n- This template is designed for tasks that require a question and a fill-in-the-blank text.\n- The task should call the 'createLayout' method to initialize the layout.\n- The details object passed to 'createLayout' should include the necessary data for setting up the question and the fill-in-the-blank text.\n- The image placeholder can be left blank if no image is needed by the task.\n- If an image is needed, the task should manipulate the image placeholder element directly to set the image URL.\n\nExample Task Setup:\n- The task calls `playerApi.callTemplateScript('createLayout', details);` where `details` includes:\n  - `question`: The question text to be displayed.\n  - `fillInTheBlankText`: The text with blanks that need to be filled by the student.\n- If an image is needed, the task can manipulate the image placeholder element:\n  - `const imagePlaceholder = document.getElementById('image_placeholder');`\n  - `imagePlaceholder.innerHTML = '<img src=\"/path/to/image.png\" alt=\"Description of image\">';`\n\nCommunication Between Template and Task:\n- The task communicates with the template by calling methods on `playerApi.callTemplateScript`.\n- The template can communicate back to the task using events, but this particular template does not send or receive any specific events as per its current configuration.\n*/"
+}

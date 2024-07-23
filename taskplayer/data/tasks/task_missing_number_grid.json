@@ -1,6 +1,6 @@
 {
   "task_id": "task_missing_number_grid",
-  "template_id": "template_figure_question_answer",
+  "template_id": "template_question_answer",
   "title": {
     "english": "Missing Number (Grid)",
     "german": "Fehlende Zahl (Raster)"

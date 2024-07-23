@@ -1,6 +1,6 @@
 {
   "task_id": "task_gradient",
-  "template_id": "template_figure_question_answer",
+  "template_id": "template_question_answer",
   "title": {
     "english": "Linear Function Gradient Task",
     "german": "Steigung der linearen Funktion"
