@@ -13,7 +13,7 @@ template_dir = os.path.join(os.path.dirname(__file__), 'data/templates')
 js_dir =  os.path.join(os.path.dirname(__file__), 'data/scripts')
 
 
-def load_tasks(tasks_dir):
+def load_tasks(tasks_dir=tasks_dir):
     tasks = []
     task_files = []
     # Load all tasks in the given directory and create list of tuples (title, filename, topic_id)
@@ -322,6 +322,29 @@ def generator_message(request):
 
 
 @csrf_exempt
+def topic_lookup(request):
+    if request.method == 'POST':
+
+        print(request.body)
+
+        data = json.loads(request.body)
+        task = data.get('task', None)
+        topics_lookup = get_topics_lookup()
+        topic_id = generation_manager.find_topic_id(task["description"]["english"], json.dumps(topics_lookup))
+
+        return JsonResponse({'status': 'success', 'topic_id': topic_id, 'lookup': topics_lookup})
+    return JsonResponse({'status': 'error', 'topic_id': None})
+
+@csrf_exempt
+def task_ids(request):
+    if request.method == 'GET':
+        _, task_files = load_tasks()
+        task_ids = [f[:-5] for f in task_files]
+
+        return JsonResponse({'status': 'success', 'task_ids': task_ids})
+    return JsonResponse({'status': 'error', 'task_ids': None})
+
+@csrf_exempt
 def save_task(request):
     if request.method == 'POST':
         data = json.loads(request.body)
@@ -338,12 +361,6 @@ def save_task(request):
         # find topic id and save task
         task_id = task.get('task_id', 'untitled_task')
         task_path = os.path.join(tasks_dir, f'{task_id}.json')
-        
-
-        topics_lookup = get_topics_lookup()
-
-        topic_id = generation_manager.find_topic_id(task["description"]["english"], json.dumps(topics_lookup))
-        task["topic_id"] = topic_id
 
         with open(task_path, 'w') as task_file:
             json.dump(task, task_file)

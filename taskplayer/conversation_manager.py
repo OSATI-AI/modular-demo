@@ -4,9 +4,10 @@ from openai import OpenAI
 import os
 
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
+MODEL =  "openai/gpt-4o" #"meta-llama/llama-3.1-405b-instruct" #
 
 class ConversationManager:
-    def __init__(self, api_key, model_name='openai/gpt-4o', api_base='https://openrouter.ai/api/v1'):
+    def __init__(self, api_key, model_name=MODEL, api_base='https://openrouter.ai/api/v1'):
         self.client = OpenAI(
             base_url=api_base,
             api_key=api_key)
@@ -186,6 +187,9 @@ class ConversationManager:
             {"role": "user", "content": tutor_instruction}
         ])
         
+        print("\n\n\n ", MODEL, "\n\n\n")
+        print(response)
+
         response = response.choices[0].message.content
         response_tutor = response.split("TUTOR:")[1].replace("**", "").replace("\"", "")
 

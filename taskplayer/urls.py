@@ -11,6 +11,8 @@ urlpatterns = [
     path('generator_message', views.generator_message, name='generator_message'),
     path('save_task', views.save_task, name='save_task'),
     path('upload_image', views.upload_image, name='upload_image'),
+    path('topic_lookup', views.topic_lookup, name='topic_lookup'),
+    path('task_ids', views.task_ids, name='task_ids'),
 ]
 
 if settings.DEBUG:

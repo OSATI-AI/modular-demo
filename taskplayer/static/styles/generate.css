@@ -492,3 +492,19 @@ color: #2d2d2d;
 #btn-upload{
     margin-left:10px; 
 }
+
+.error {
+    border-color: red;
+}
+
+.error-message {
+    color: red;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+button:disabled {
+    background-color: #cccccc;
+    color: #666666;
+    cursor: not-allowed;
+}

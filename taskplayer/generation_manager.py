@@ -80,8 +80,11 @@ EXAMPLE_P5JS = """
             new p5(s);
         };"""
 
+
+MODEL = "gpt-4o"#"meta-llama/llama-3.1-405b-instruct" 
+
 class GenerationManager:
-    def __init__(self, api_key, model_name='gpt-4o', api_base='https://openrouter.ai/api/v1'):
+    def __init__(self, api_key, model_name=MODEL, api_base='https://openrouter.ai/api/v1'):
         self.client = OpenAI(
             base_url=api_base,
             api_key=api_key)

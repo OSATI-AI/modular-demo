@@ -115,12 +115,30 @@
                         <label for="description-german">German</label>
                         <textarea id="description-german" class="popup-input"></textarea>
                     </div>
+                    <label>Task ID:</label>
+                    <input type="text" id="task-id" class="popup-input" />
+                    <span id="task-id-error" class="error-message" style="display:none;">Task ID already used</span>
+                
+                    <div>
+                        <label for="level-select">Level</label>
+                        <select id="level-select" class="popup-input"></select>
+                    </div>
+                    <div>
+                        <label for="key-idea-select">Key Idea</label>
+                        <select id="key-idea-select" class="popup-input"></select>
+                    </div>
+                    <div>
+                        <label for="topic-select">Topic</label>
+                        <select id="topic-select" class="popup-input"></select>
+                    </div>
                     <div class="popup-buttons">
                         <button id="cancel-popup-btn">Cancel</button>
                         <button id="save-popup-btn">Save</button>
                     </div>
                 </div>
+                
             </div>
+            
 
             
             <div id="spinner"></div>
@@ -169,27 +187,153 @@
             document.dispatchEvent(customEvent);
         });
 
-        document.getElementById('save-task-btn').addEventListener('click', () => {            
+        document.getElementById('save-task-btn').addEventListener('click', async () => {
+            // Show spinner overlay
+            document.getElementById('spinner-overlay').style.display = 'flex';
+
             // Fill the popup with current task details
             document.getElementById('title-english').value = currentTask.title.english || '';
             document.getElementById('title-german').value = currentTask.title.german || '';
             document.getElementById('description-english').value = currentTask.description.english || '';
             document.getElementById('description-german').value = currentTask.description.german || '';
-            
-            // Show the popup
-            document.getElementById('popup').style.display = 'block';
+            document.getElementById('task-id').value = currentTask.task_id || '';
+
+            // Fetch the list of existing task IDs
+            const taskIdsResponse = await fetch('/task_ids', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+
+            const taskIdsData = await taskIdsResponse.json();
+            const existingTaskIds = taskIdsData.task_ids;
+
+            // Fetch the topic lookup data
+            const response = await fetch('/topic_lookup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ task: currentTask })
+            });
+            // Hide spinner overlay
+            document.getElementById('spinner-overlay').style.display = 'none';
+
+            if (response.ok && taskIdsResponse.ok) {
+                const data = await response.json();
+                populateDropdowns(data.lookup, data.topic_id);
+                const taskIdInput= document.getElementById('task-id');
+                taskIdInput.addEventListener('input', () => {
+                    check_task_id(taskIdInput.value.trim(), existingTaskIds)
+                });
+
+                // Initial validation
+                check_task_id(taskIdInput.value.trim(), existingTaskIds)
+
+                // Show the popup
+                document.getElementById('popup').style.display = 'block';
+            } else {
+                alert('Failed to fetch data.');
+            }
         });
+
+        function check_task_id(taskIdValue, existingTaskIds){
+            const taskIdInput= document.getElementById('task-id');
+            const taskIdError = document.getElementById('task-id-error');
+            const savePopupBtn = document.getElementById('save-popup-btn');
+            if (existingTaskIds.includes(taskIdValue)) {
+                taskIdInput.classList.add('error');
+                taskIdError.style.display = 'inline';
+                savePopupBtn.disabled = true;
+            } else {
+                taskIdInput.classList.remove('error');
+                taskIdError.style.display = 'none';
+                savePopupBtn.disabled = false;
+            }
+        }
+
+        function populateDropdowns(lookup, topicId) {
+            const levels = lookup.levels;
+            const keyIdeas = lookup.key_ideas;
+            const topics = lookup.topics;
+
+            const levelSelect = document.getElementById('level-select');
+            const keyIdeaSelect = document.getElementById('key-idea-select');
+            const topicSelect = document.getElementById('topic-select');
+
+            // Clear existing options
+            levelSelect.innerHTML = '';
+            keyIdeaSelect.innerHTML = '';
+            topicSelect.innerHTML = '';
+
+            // Populate levels dropdown
+            for (const [key, value] of Object.entries(levels)) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.text = value[getLanguage()];
+                levelSelect.appendChild(option);
+            }
+
+            // Populate key ideas dropdown
+            for (const [key, value] of Object.entries(keyIdeas)) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.text = value[getLanguage()];
+                keyIdeaSelect.appendChild(option);
+            }
+
+            // Set initial values based on topicId
+            const topic = topics[topicId];
+            levelSelect.value = topic.level;
+            keyIdeaSelect.value = topic.key_idea;
+
+            // Populate topics dropdown based on initial level and key idea
+            populateTopicsDropdown(levelSelect.value, keyIdeaSelect.value, topics);
+
+            levelSelect.addEventListener('change', () => {
+                populateTopicsDropdown(levelSelect.value, keyIdeaSelect.value, topics);
+            });
+
+            keyIdeaSelect.addEventListener('change', () => {
+                populateTopicsDropdown(levelSelect.value, keyIdeaSelect.value, topics);
+            });
+
+            // Set the topic dropdown to the current topic
+            topicSelect.value = topicId;
+        }
+
+        function populateTopicsDropdown(level, keyIdea, topics) {
+            const topicSelect = document.getElementById('topic-select');
+            topicSelect.innerHTML = '';
+
+            for (const [key, value] of Object.entries(topics)) {
+                if (value.level == level && value.key_idea == keyIdea) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.text = value.title[getLanguage()];
+                    topicSelect.appendChild(option);
+                }
+            }
+        }
 
         document.getElementById('cancel-popup-btn').addEventListener('click', () => {
             document.getElementById('popup').style.display = 'none';
         });
 
-        document.getElementById('save-popup-btn').addEventListener('click', async () => {            
+        document.getElementById('save-popup-btn').addEventListener('click', async () => {
             // Update task object with new values from the popup
             currentTask.title.english = document.getElementById('title-english').value;
             currentTask.title.german = document.getElementById('title-german').value;
             currentTask.description.english = document.getElementById('description-english').value;
             currentTask.description.german = document.getElementById('description-german').value;
+            currentTask.task_id = document.getElementById('task-id').value;
+
+            // Get the selected topic id
+            const selectedTopicId = document.getElementById('topic-select').value;
+            currentTask.topic_id = parseInt(selectedTopicId, 10);
 
             // Close the popup
             document.getElementById('popup').style.display = 'none';
@@ -202,9 +346,9 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken') // Assuming CSRF token is named 'csrftoken'
+                    'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({ task: currentTask, p5js:currentP5js })
+                body: JSON.stringify({ task: currentTask, p5js: currentP5js })
             });
 
             // Hide spinner overlay
@@ -230,11 +374,10 @@
             }
         });
 
+
+
         document.addEventListener('evaluationResult', (event) => {
             const evaluationResult = event.detail;
-
-            console.log(evaluationResult)
-
             if (evaluationResult.isCorrect) {
                 displaySuccessFeedback();
             } else {
@@ -538,7 +681,6 @@
                 if (response.ok) {
                     const data = await response.json();
                     currentImagePath = data.path;
-                    console.log(currentImagePath)
                     // Show success message overlay
                     document.getElementById('success-message-overlay').style.display = 'flex';
 
