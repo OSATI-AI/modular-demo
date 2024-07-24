@@ -9,7 +9,7 @@
     "english": "The student has to identify all prime numbers from a given set of numbers. This is a multiple-choice exercise where multiple selections can be correct. Each multiple choice element contains a checkbox that must be activated to select a number. The task is only correct if all prime numbers are selected and no non-prime numbers are selected.",
     "german": "Der Schüler muss alle Primzahlen aus einer gegebenen Zahlenmenge erkennen. Dies ist eine Multiple-Choice-Aufgabe, bei der mehrere Auswahlen korrekt sein können. Jedes Multiple-Choice-Element enthält ein Kontrollkästchen, das aktiviert werden muss, um eine Zahl auszuwählen. Die Aufgabe ist nur dann korrekt, wenn alle Primzahlen ausgewählt und keine Nicht-Primzahlen ausgewählt werden."
   },
-  "topic_id": 19,
+  "topic_id": 15,
   "events": {
     "send": ["evaluationResult", "task_details", "task_loaded"],
     "receive": ["evaluate", "refresh", "get_task_details", "choices_selected"]

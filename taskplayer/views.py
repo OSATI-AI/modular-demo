@@ -39,6 +39,8 @@ def structure_tasks(tasks, topics_lookup, language):
     structured_tasks = {}
 
     for title, filename, topic_id in tasks:
+        if topic_id < 0:
+            continue
         topic = topics_lookup['topics'][str(topic_id)]
         key_idea_id = topic['key_idea']
         level_id = topic['level']
@@ -169,8 +171,22 @@ def get_js_code(path, filename):
 
 def get_example_task(template):
     task_file = template["example_task"]+".json"
-    with open(os.path.join(tasks_dir, task_file), 'r', encoding='utf-8') as file:
+    filepath = os.path.join(tasks_dir, task_file)
+    if not os.path.exists(filepath):
+        # example task does not exist
+        # Fallback 1 choose first task that uses this template
+        tasks, task_files = load_tasks()
+        task_files_template = [task_files[i] for i in range(len(task_files)) if tasks[i]["template_id"] == template["template_id"]]
+        if len(task_files_template)>0:
+            filepath = os.path.join(tasks_dir, task_files_template[0])
+        else:
+            # no tasks for this template
+            # Fallback 2 choose first task in list of all tasks 
+            filepath = os.path.join(tasks_dir, task_files[0])
+    with open(filepath, 'r', encoding='utf-8') as file:
         task = json.load(file)
+            
+
     return task
 
 @csrf_exempt
@@ -279,16 +295,8 @@ def generator_message(request):
                 title = response["title"]
                 description = response["description"]
                 task_id =response["task_id"]
-
-
-            print("\n\n\n BEFORE \n", script)
-
             script.replace("\\\\\\\\", "\\\\")
             script.replace("\\\\\\", "\\\\")
-            
-            print("\n\n\n AFTER \n", script)
-
-
             task = {}
             task["title"] = title
             task["description"] = description
@@ -324,9 +332,6 @@ def generator_message(request):
 @csrf_exempt
 def topic_lookup(request):
     if request.method == 'POST':
-
-        print(request.body)
-
         data = json.loads(request.body)
         task = data.get('task', None)
         topics_lookup = get_topics_lookup()

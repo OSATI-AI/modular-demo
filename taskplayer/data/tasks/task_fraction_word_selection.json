@@ -2,14 +2,14 @@
   "task_id": "task_fraction_word_selection",
   "template_id": "template_word_selection",
   "title": {
-    "english": "Describe the Fraction",
-    "german": "Beschreibe den Bruch"
+    "english": "Describe the Fraction 2",
+    "german": "Beschreibe den Bruch 2"
   },
   "description": {
     "english": "The student has to describe the given fraction by selecting words. The task presents a question, a fraction displayed in the middle of the screen, and multiple word options that the student can select from to form the correct description of the fraction.",
     "german": "Der Schüler muss den gegebenen Bruch durch Auswahl von Wörtern beschreiben. Die Aufgabe stellt eine Frage, zeigt einen Bruch in der Mitte des Bildschirms und bietet mehrere Wortoptionen, aus denen der Schüler die richtige Beschreibung des Bruchs auswählen kann."
   },
-  "topic_id": 18,
+  "topic_id": 16,
   "events": {
     "send": ["evaluationResult", "task_details", "task_loaded", "set_words", "set_display"],
     "receive": ["evaluate", "refresh", "get_task_details", "words_selected"]

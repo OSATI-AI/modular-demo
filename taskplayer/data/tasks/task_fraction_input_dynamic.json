@@ -2,8 +2,8 @@
     "task_id": "task_fraction_input_dynamic",
     "template_id": "template_fraction_input",
     "title": {
-      "english": "Dynamic Fraction Input Example",
-      "german": "Dynamisches Bruch Eingabe Beispiel"
+      "english": "Number representation of fractions",
+      "german": "Zahlendarstellung von Brüchen"
     },
     "description": {
       "english": "The student has to fill in the blanks with appropriate numbers to represent the given fraction.",

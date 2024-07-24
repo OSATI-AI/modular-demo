@@ -1,0 +1,13 @@
+{
+    "template_id": "template_default",
+    "title": "Default Template",
+    "example_task": "task_default_example",
+    "description": "A fallback template providing a single empty container. Tasks can fill this container with any content as needed.",
+    "events": {
+      "send": [],
+      "receive": []
+    },
+    "html": "<div class='default-container' id='default-container'></div>",
+    "scripts": "function createLayout(details) {\n  // Get the default container element by its ID\n  const defaultContainer = document.getElementById('default-container');\n  \n  // Return an object containing reference to the container element\n  return { defaultContainer };\n}\n\n// Override the callTemplateScript method of playerApi to handle method calls\n// This allows tasks to communicate with the template by calling this method\nplayerApi.callTemplateScript = (method, details) => {\n  if (method === 'createLayout') {\n    // Call the createLayout function with the provided details\n    return createLayout(details);\n  }\n};\n\n/*\nUsage Instructions:\n- This template is designed as a fallback solution providing a single empty container.\n- The task should call the 'createLayout' method to initialize the layout.\n- The details object passed to 'createLayout' should include the necessary data for filling the container.\n\nExample Task Setup:\n- The task calls `playerApi.callTemplateScript('createLayout', details);` where `details` includes:\n  - `content`: The content to be displayed inside the default container.\n- The task can then manipulate the container element directly to set the desired content.\n\nCommunication Between Template and Task:\n- The task communicates with the template by calling methods on `playerApi.callTemplateScript`.\n- The template does not send or receive any specific events as per its current configuration.\n*/"
+  }
+  

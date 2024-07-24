@@ -129,6 +129,12 @@ class GenerationManager:
         "template": "template_multiple_choice.json"
         LIST OF TEMPLATES:
         {templates}
+
+        NOTE: 
+        The template "template_default" is a fallback solution. Only if no other template
+        would be possible to solve the requirements, choose thise template. It provides only an empty
+        container which can be filled with arbitrary elements to be able to implement every possible layout. 
+        But only use this one as the last fallback. 
         """
 
 
@@ -453,10 +459,6 @@ class GenerationManager:
 
     def generate(self, prompt):
         prompt = self.persona() + "\n" + prompt
-
-
-        print("\n\n\n",prompt, "\n\n\n")
-
         start = time.time()
         response = self.client.chat.completions.create(
         model=self.model,

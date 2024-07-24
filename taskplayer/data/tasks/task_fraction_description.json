@@ -2,8 +2,8 @@
   "task_id": "task_fraction_description",
   "template_id": "template_fill_in_the_blank",
   "title": {
-    "english": "Fraction Description",
-    "german": "Bruchbeschreibung"
+    "english": "Describe the Fraction 1",
+    "german": "Beschreibe den Bruch 1"
   },
   "description": {
     "english": "The student has to fill in the blanks with appropriate terms and numbers to describe the fraction.",
