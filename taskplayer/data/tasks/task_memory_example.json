@@ -1,0 +1,116 @@
+{
+  "task_id": "task_memory_example",
+  "template_id": "template_memory",
+  "title": {
+    "english": "Fraction Memory Game",
+    "german": "Bruch-Memory-Spiel"
+  },
+  "description": {
+    "english": "The task requires the student to find matching pairs of fractions and their word representations. The fractions are represented in numeric form (e.g., 1/2, 3/4), and the corresponding word representations are provided in both English and German (e.g., one half, drei viertel). The cards are displayed in a grid layout, and the student must click on the cards to reveal their values. When a matching pair is found, the cards remain face up and are highlighted in light green. The task keeps track of the pairs found and evaluates whether all pairs have been matched correctly.",
+    "german": "Die Aufgabe erfordert, dass der Schüler passende Paare von Brüchen und deren Wortdarstellungen findet. Die Brüche werden in numerischer Form dargestellt (z.B. 1/2, 3/4), und die entsprechenden Wortdarstellungen werden sowohl in Englisch als auch in Deutsch angegeben (z.B. one half, drei viertel). Die Karten werden in einem Rasterlayout angezeigt, und der Schüler muss auf die Karten klicken, um deren Werte aufzudecken. Wenn ein passendes Paar gefunden wird, bleiben die Karten aufgedeckt und werden hellgrün hervorgehoben. Die Aufgabe verfolgt die gefundenen Paare und bewertet, ob alle Paare korrekt zugeordnet wurden."
+  },
+  "topic_id": 16,
+  "events": {
+    "send": ["task_loaded", "evaluationResult"],
+    "receive": ["get_task_details", "refresh", "found_pair", "evaluate"]
+  },
+  "text": {
+    "instruction": {
+      "english": "Find all matching pairs of fractions and their word representations.",
+      "german": "Finde alle passenden Paare von Brüchen und deren Wortdarstellungen."
+    },
+    "nom_1": {
+      "german": "ein",
+      "english": "one"
+    },
+    "denom_2": {
+      "german": "halbe",
+      "english": "half"
+    },
+    "nom_2": {
+      "german": "zwei",
+      "english": "two"
+    },
+    "denom_3": {
+      "german": "drittel",
+      "english": "third"
+    },
+    "nom_3": {
+      "german": "drei",
+      "english": "three"
+    },
+    "denom_4": {
+      "german": "viertel",
+      "english": "quarter"
+    },
+    "nom_4": {
+      "german": "vier",
+      "english": "four"
+    },
+    "denom_5": {
+      "german": "fünftel",
+      "english": "fifth"
+    },
+    "nom_5": {
+      "german": "fünf",
+      "english": "five"
+    },
+    "denom_6": {
+      "german": "sechstel",
+      "english": "sixth"
+    },
+    "nom_6": {
+      "german": "sechs",
+      "english": "six"
+    },
+    "denom_7": {
+      "german": "siebtel",
+      "english": "seventh"
+    },
+    "nom_7": {
+      "german": "sieben",
+      "english": "seven"
+    },
+    "denom_8": {
+      "german": "achtel",
+      "english": "eighth"
+    },
+    "nom_8": {
+      "german": "acht",
+      "english": "eight"
+    },
+    "denom_9": {
+      "german": "neuntel",
+      "english": "ninth"
+    },
+    "nom_9": {
+      "german": "neun",
+      "english": "nine"
+    },
+    "denom_10": {
+      "german": "zehntel",
+      "english": "tenth"
+    },
+    "nom_10": {
+      "german": "zehn",
+      "english": "ten"
+    },
+    "denom_11": {
+      "german": "elftel",
+      "english": "eleventh"
+    },
+    "nom_11": {
+      "german": "elf",
+      "english": "eleven"
+    },
+    "denom_12": {
+      "german": "zwölftel",
+      "english": "twelfth"
+    },
+    "nom_12": {
+      "german": "zwölf",
+      "english": "twelve"
+    }
+  },
+  "script": "function getRandomElements(list, count) {\n  const result = [];\n  for (let i = 0; i < count; i++) {\n    result.push(list[Math.floor(Math.random() * list.length)]);\n  }\n  return result;\n}\n\nfunction getRandomArrayLength() {\n  const possibleLengths = [4, 6, 8];\n  return possibleLengths[Math.floor(Math.random() * possibleLengths.length)];\n}\n\nconst numberWords = {\n  1: { nominator: \"{{nom_1}}\" },\n  2: { nominator: \"{{nom_2}}\", denominator: \"{{denom_2}}\" },\n  3: { nominator: \"{{nom_3}}\", denominator: \"{{denom_3}}\" },\n  4: { nominator: \"{{nom_4}}\", denominator: \"{{denom_4}}\" },\n  5: { nominator: \"{{nom_5}}\", denominator: \"{{denom_5}}\" },\n  6: { nominator: \"{{nom_6}}\", denominator: \"{{denom_6}}\" },\n  7: { nominator: \"{{nom_7}}\", denominator: \"{{denom_7}}\" },\n  8: { nominator: \"{{nom_8}}\", denominator: \"{{denom_8}}\" },\n  9: { nominator: \"{{nom_9}}\", denominator: \"{{denom_9}}\" },\n  10: { nominator: \"{{nom_10}}\", denominator: \"{{denom_10}}\" },\n  11: { nominator: \"{{nom_11}}\", denominator: \"{{denom_11}}\" },\n  12: { nominator: \"{{nom_12}}\", denominator: \"{{denom_12}}\" }\n};\n\n// Function to generate random fractions and their word representations\nfunction generateFractions(count) {\n  const fractions = [];\n  const fractionWords = [];\n  for (let i = 0; i < count; i++) {\n    const numerator = Math.floor(Math.random() * 12) + 1;\n    const denominator = Math.floor(Math.random() * 11) + 2;\n    fractions.push(`${numerator}/${denominator}`);\n    fractionWords.push(`${numberWords[numerator].nominator} ${numberWords[denominator].denominator}`);\n  }\n  return { fractions, fractionWords };\n}\n\n// Initialize array length and generate fractions\nlet arrayLength = getRandomArrayLength();\nconst { fractions, fractionWords } = generateFractions(arrayLength);\n\n// Track found pairs and all pairs\nlet foundPairs = [];\nlet allPairs = Array.from(Array(arrayLength).keys());\n\n// Create the layout and get references to the question element and memory grid\nconst { questionElement, memoryGrid } = playerApi.callTemplateScript('createLayout', { list1: fractions, list2: fractionWords });\n\n// Set the instruction text\nquestionElement.innerText = \"{{instruction}}\";\n\nfunction init() {\n  // Listener for getting task details\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = `This task displays memory cards with values from two lists.`;\n    playerApi.sendEvent('task_details', {\n      staticInfo: taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n\n  // Listener for refreshing the task\n  playerApi.receiveEvent('refresh', function() {\n    arrayLength = getRandomArrayLength();\n    const { fractions: newFractions, fractionWords: newFractionWords } = generateFractions(arrayLength);\n    foundPairs = [];\n    allPairs = Array.from(Array(arrayLength).keys());\n    playerApi.callTemplateScript('createLayout', { list1: newFractions, list2: newFractionWords });\n  });\n\n  // Listener for found pairs\n  playerApi.receiveEvent('found_pair', function(event) {\n    foundPairs.push(event.index);\n  });\n\n  // Listener for evaluating the task\n  playerApi.receiveEvent('evaluate', function() {\n    console.log(allPairs, foundPairs);\n    const isCorrect = foundPairs.length === allPairs.length;\n    playerApi.sendEvent('evaluationResult', { userAnswer: foundPairs, answer: allPairs, isCorrect: isCorrect });\n  });\n\n  // Send task loaded event\n  playerApi.sendEvent('task_loaded', {});\n}\n\ninit();"
+}

@@ -1,0 +1,24 @@
+{
+  "task_id": "task_mark_fractions",
+  "template_id": "template_mark_fractions",
+  "title": {
+    "english": "Mark the Fraction",
+    "german": "Markiere den Bruch"
+  },
+  "description": {
+    "english": "A task where the student marks the correct number of cells to represent a given fraction.",
+    "german": "Eine Aufgabe, bei der der Schüler die richtige Anzahl von Zellen markiert, um einen gegebenen Bruch darzustellen."
+  },
+  "topic_id": 16,
+  "events": {
+    "send": ["evaluationResult", "task_details", "task_loaded"],
+    "receive": ["evaluate", "refresh", "get_task_details", "cellClicked"]
+  },
+  "text": {
+    "text_question": {
+      "english": "Mark the fraction",
+      "german": "Markiere den Bruch"
+    }
+  },
+  "script": "let numerator, denominator, correctCount;\n\n// Call the template's createLayout method to initialize the layout\nconst { questionElement, gridContainer } = playerApi.callTemplateScript('createLayout', {});\n\n// Function to generate a new fraction and setup the grid\nfunction generateExercise() {\n  // Randomly generate numerator and denominator\n  do {\n    numerator = Math.floor(Math.random() * 12) + 1;\n    denominator = Math.floor(Math.random() * 11) + 2;\n  } while (numerator > denominator);\n  correctCount = numerator;\n  const totalCells = denominator;\n\n  // Create the fraction description using the generated numbers\n  const fractionDescription = `${numerator}/${denominator}`;\n  questionElement.innerHTML = `<p>{{text_question}}</p><p style='font-size: 24px; font-weight: bold;'>${fractionDescription}</p>`;\n\n  // Clear the grid container\n  gridContainer.innerHTML = '';\n\n  // Determine number of rows\n  let rows;\n  if (denominator === 4) {\n    rows = 2;\n  } else if (denominator % 4 === 0) {\n    rows = 4;\n  } else if (denominator % 3 === 0) {\n    rows = 3;\n  } else if (denominator % 2 === 0) {\n    rows = 2;\n  } else {\n    rows = 1;\n  }\n\n  // Set grid-template-rows and grid-template-columns\n  gridContainer.style.gridTemplateRows = `repeat(${rows}, auto)`;\n  gridContainer.style.gridTemplateColumns = `repeat(${Math.ceil(denominator / rows)}, auto)`;\n\n  // Create cells\n  for (let i = 0; i < totalCells; i++) {\n    const cell = document.createElement('div');\n    cell.classList.add('grid-cell');\n    cell.addEventListener('click', () => toggleCell(cell));\n    gridContainer.appendChild(cell);\n  }\n\n  playerApi.sendEvent('task_loaded', {});\n}\n\n// Function to toggle cell highlight state\nfunction toggleCell(cell) {\n  cell.classList.toggle('active');\n  const activeCells = document.querySelectorAll('.grid-cell.active').length;\n  const totalCells = document.querySelectorAll('.grid-cell').length;\n  playerApi.sendEvent('cellClicked', { activeCells, totalCells });\n}\n\n// Function to normalize user answers for comparison\nfunction normalizeAnswer(answer) {\n  return answer.trim().toLowerCase();\n}\n\n// Initialization function\nfunction init() {\n  // Handle event to get task details\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = `The task requires marking ${numerator} out of ${denominator} cells to represent the fraction ${numerator}/${denominator}.`;\n    playerApi.sendEvent('task_details', {\n      staticInfo: taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n\n  // Handle evaluation event\n  playerApi.receiveEvent('evaluate', function() {\n    const activeCells = document.querySelectorAll('.grid-cell.active').length;\n    const isCorrect = activeCells === correctCount;\n    playerApi.sendEvent('evaluationResult', { userAnswers: { activeCells }, correctAnswers: { correctCount }, isCorrect });\n  });\n\n  // Handle refresh event\n  playerApi.receiveEvent('refresh', function() {\n    generateExercise();\n  });\n}\n\n// Initialize and generate the first exercise\ninit();\ngenerateExercise();"
+}
