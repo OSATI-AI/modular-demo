@@ -1,0 +1,45 @@
+{
+    "task_id": "task_fraction_distance",
+    "template_id": "template_multi_step",
+    "title": {
+      "english": "Calculate a Fraction of a Distance",
+      "german": "Berechne einen Bruchteil einer Strecke"
+    },
+    "description": {
+      "english": "The student is required to calculate a fraction of a given distance step by step. For example, the problem may ask to find 5/7 of a 21m long distance. The problem is broken down into multiple steps, where each step reveals itself only after the correct answer to the previous step is provided. The steps involve dividing the total distance by the denominator, calculating the length of each segment, specifying the number of segments to take, and finally calculating the total length of the required segments.",
+      "german": "Der Schüler soll schrittweise einen Bruchteil einer gegebenen Strecke berechnen. Zum Beispiel kann die Aufgabe lauten, 5/7 von einer 21m langen Strecke zu bestimmen. Das Problem ist in mehrere Schritte unterteilt, wobei jeder Schritt erst angezeigt wird, nachdem die richtige Antwort auf den vorherigen Schritt gegeben wurde. Die Schritte umfassen die Aufteilung der Gesamtstrecke durch den Nenner, die Berechnung der Länge jedes Segments, die Angabe der Anzahl der zu nehmenden Segmente und schließlich die Berechnung der Gesamtlänge der erforderlichen Segmente."
+    },
+    "topic_id": 16,
+    "events": {
+      "send": ["task_loaded", "evaluationResult"],
+      "receive": ["get_task_details", "refresh", "step_input", "evaluate"]
+    },
+    "text": {
+      "instruction": {
+        "english": "Determine the fraction of a distance step by step.",
+        "german": "Bestimme den Bruchteil einer Strecke Schritt für Schritt."
+      },
+      "step1": {
+        "english": "Into how many equal parts is the distance divided?",
+        "german": "In wie viele gleich große Stücke wird die Strecke geteilt?"
+      },
+      "step2": {
+        "english": "How long is each part? (in meters)",
+        "german": "Wie lang ist dann jedes Stück? (in Metern)"
+      },
+      "step3": {
+        "english": "How many of these parts do we take?",
+        "german": "Wie viele dieser Stücke nehmen wir?"
+      },
+      "step4": {
+        "english": "What is the length of the fraction of the distance? (in meters)",
+        "german": "Wie lang ist nun der Bruchteil der Strecke? (in Metern)"
+      },
+      "main_question": {
+        "english": "Calculate numerator/denominator of a lengthm long distance.",
+        "german": "Bestimme numerator/denominator von einer lengthm langen Strecke."
+      }
+    },
+    "script": "function getRandomFraction() {\n  let numerator, denominator;\n  do {\n    numerator = Math.floor(Math.random() * 11) + 1; // 1 to 12\n    denominator = Math.floor(Math.random() * 11) + 2; // 2 to 12\n  } while (numerator > denominator);\n  const length = numerator * denominator;\n  return { numerator, denominator, length };\n}\n\nlet currentStep = 0;\nlet steps = [];\nlet answers = [];\nlet fraction;\nlet solved = false;\nlet lastUserInput = \"\";\n\nfunction generateSteps() {\n  fraction = getRandomFraction();\n  steps = [\n    '{{step1}}',\n    '{{step2}}',\n    '{{step3}}',\n    '{{step4}}'\n  ];\n  answers = [\n    fraction.denominator.toString(),\n    (fraction.length / fraction.denominator).toString(),\n    fraction.numerator.toString(),\n    (fraction.numerator * (fraction.length / fraction.denominator)).toString()\n  ];\n  question = '{{main_question}}'.replace(\"numerator\", fraction.numerator.toString()).replace(\"denominator\", fraction.denominator.toString()).replace(\"length\", fraction.length.toString())\n  playerApi.callTemplateScript('createLayout', { mainQuestion: question, steps });\n}\n\nfunction init() {\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = `The student is calculating ${fraction.numerator}/${fraction.denominator} of a ${fraction.length}m distance. The current step is: ${steps[currentStep]}. The correct answer for the current step is: ${answers[currentStep]}. The most recent input from the student was: ${lastUserInput}. The overall correct answers are: ${answers.join(', ')}.`;\n    playerApi.sendEvent('task_details', {\n      staticInfo: taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n\n  playerApi.receiveEvent('refresh', function() {\n    generateSteps();\n  });\n\n  playerApi.receiveEvent('step_input', function(event) {\n    const { stepIndex, input } = event;\n    lastUserInput = input;\n    if (input === answers[stepIndex] && stepIndex === currentStep) {\n      currentStep += 1\n      if (stepIndex === answers.length - 1) {\n        solved = true;\n        console.log(\"DONE!\");\n      } else {\n        playerApi.sendEvent('next_step', { steps });\n      }\n    }\n  });\n\n  playerApi.receiveEvent('evaluate', function() {\n    const userAnswer = lastUserInput;\n    const answer = answers[answers.length - 1];\n    const isCorrect = solved;\n    playerApi.sendEvent('evaluationResult', { userAnswer, answer, isCorrect });\n  });\n\n  playerApi.sendEvent('task_loaded', {});\n}\n\ngenerateSteps();\ninit();"
+  }
+  
