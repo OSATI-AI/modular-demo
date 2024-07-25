@@ -13,6 +13,7 @@ urlpatterns = [
     path('upload_image', views.upload_image, name='upload_image'),
     path('topic_lookup', views.topic_lookup, name='topic_lookup'),
     path('task_ids', views.task_ids, name='task_ids'),
+    path('description', views.generate_description, name='description'),
 ]
 
 if settings.DEBUG:

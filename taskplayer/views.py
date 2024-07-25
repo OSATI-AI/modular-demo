@@ -226,7 +226,6 @@ def generator_message(request):
                 for script_file in task["external_scripts"]:
                     p5js_code += get_js_code(js_dir, script_file)
 
-
         else:
             template_id = task_analysis["template"]
             template = read_template(template_id) 
@@ -276,31 +275,13 @@ def generator_message(request):
                     text = current_task["text"]
                 else:
                     text = response["text"]
-                if response["title"] is None:
-                    title = current_task["title"]
-                else:
-                    title = response["title"]
-                if response["description"]  is None:
-                    description = current_task["description"]
-                else:
-                    description = response["description"]
-                if response["task_id"] is None:
-                    task_id = current_task["task_id"]
-                else:
-                    task_id = response["task_id"]
             else:
                 script = response["script"]
                 events = response["events"]
                 text = response["text"]
-                title = response["title"]
-                description = response["description"]
-                task_id =response["task_id"]
             script.replace("\\\\\\\\", "\\\\")
             script.replace("\\\\\\", "\\\\")
             task = {}
-            task["title"] = title
-            task["description"] = description
-            task["task_id"] = task_id
             task["template_id"] = template_id[:-5]
             task["events"] = events
             task["text"] = text
@@ -328,6 +309,23 @@ def generator_message(request):
         return JsonResponse(response)
     return JsonResponse({"error": "Invalid request method."}, status=400)
 
+@csrf_exempt
+def generate_description(request):
+    if request.method == "POST":
+        # PARSE REQUEST
+        data = json.loads(request.body)
+        task = data.get('task', None)   
+        template = data.get('task', None)  
+        dialog = data.get('dialog', None)
+
+        description_obj = generation_manager.generate_description(json.dumps(task), json.dumps(template), dialog)
+
+        task["title"] = description_obj["title"]
+        task["description"] = description_obj["description"]
+        task["task_id"] = description_obj["task_id"]
+
+        return JsonResponse({'status': 'success', 'task': task})
+    return JsonResponse({'status': 'error', 'task': None})
 
 @csrf_exempt
 def topic_lookup(request):

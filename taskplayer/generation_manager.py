@@ -184,9 +184,6 @@ class GenerationManager:
         script = example_task["script"]
         text = example_task["text"]
         events = example_task["events"]
-        title = example_task["title"]
-        description = example_task["description"]
-        task_id = example_task["task_id"]
 
         prompt = f""" 
         You will receive the user's message and the complete previous dialog which includes 
@@ -209,9 +206,6 @@ class GenerationManager:
         "events": {events}
         "text":{text}
         "script":"{script}"
-        "title": {title}
-        "description": {description}
-        "task_id": "{task_id}"
 
         Text elements can be referenced within the script by using double curly brackets:
         Example: answerLabel.innerHTML = "<b>{{name}}: </b>";
@@ -240,10 +234,6 @@ class GenerationManager:
         It is very important that you handle the getTaskDetails event and return a very detailed description of every information connected
         to the task. This includes all static information that do not change when refreshing the task as well as dynamic information like
         the reandom generated numbers, or the correct solution. This details are later used to explain an AI tutor the whole situation as exact as possible.
-         
-        The student will never see your generated "description" neither will they see the generated "task_details". The student can only see the content of the 
-        html elements that we get from the template. So always make sure that all information that are relevant for the student
-        to solve the task (e.g. numbers that need to be used) are displayed somewhere in the html not only in the description or detailed description.
 
         Whenever a user is required to input numbers or other mathematical terms, use "math-field" from the mathlive library whenever possible. (You can always assume that it is available in the current context)
         If you are using "math-field" elements and want to display the calculation inside of it, make sure to use "setValue" to
@@ -308,9 +298,6 @@ class GenerationManager:
         "events":[YOUR EVENTS OBJECT][Here you will creat a object that contains all outgoing and incoming events that are handled in the script]
         "text":[YOUR TEXT OBJECT][Here you will specify all texts that are used in the script. Output a object that contains english and german translations for every text element. For text that contains "you", always use the "Du" in the german translation instead of "Sie"]
         "script":"[YOUR JAVASCRIPT CODE]"[Here you will write your javascript code for the task. NEVER use comments on your javascript code!]
-        "title": [YOUR TITLE OBJECT][Create a short title for the task. Output an object and add an english and german version]
-        "description": [YOUR DESCRIPTION OBJECT][Create a brief description for the task.  Output an object and add an english and german version]
-        "task_id": [YOUR TASK ID] [As task id use the english title, put task_ in front of it, make all characters lower case and replace all whitespaces with underscores]
         """
         if p5js:
             prompt += """
@@ -377,6 +364,49 @@ class GenerationManager:
         separate field in the output object as described below. 
         """
 
+    def prompt_description(self, task,template, dialog):
+        return f"""
+        Below you will find a json object that defines a learning task. This task was created based on the
+        following dialog between a user and an assistant:
+
+        {dialog}
+
+        Here is the task that was created based on this dialog:
+
+        {task}
+
+        And here is the template that defines the overall layout of the task
+
+        {template}
+
+        Your task is to find a title, a description and a task_id for this task.
+
+        "title": [YOUR TITLE OBJECT][Create a short title for the task. Output an object and add an english and german version]
+        "description": [YOUR DESCRIPTION OBJECT][Create a detailed description for the task.  Output an object and add an english and german version]
+        "task_id": [YOUR TASK ID] [As task id use the english title, put task_ in front of it, make all characters lower case and replace all whitespaces with underscores]
+        
+        The title will be the first thing a student will see when opening the task, so make sure it is short, descriptive and informative
+
+        The student will never see your generated "description". This description is used to tell an AI Tutor the context
+        of the current task. Since the tutor can not see the screen, your description should be very detailed and contain
+        all information that you have and that are important about the task. What not should be included are the dynamic details
+        so everything which is randomly generated on refresh. But everything wich is static such as the layout, the general task description,
+        colors, input fields etc. should be described here. 
+
+        EXAMPLE: 
+        """ + """"
+        task_id": "task_gradient"
+
+        "title": {
+            "english": "Linear Function Gradient Task",
+            "german": "Steigung der linearen Funktion"
+        }
+
+        "description": {
+            "english": "This task requires the user to determine the gradient of a linear function. The user will see a graph of the function and an input field to enter the gradient. The student only sees the graph and does not know the function. He should determine the gradient just by looking at the graph",
+            "german": "Diese Aufgabe erfordert, dass der Benutzer die Steigung einer linearen Funktion bestimmt. Der Benutzer sieht einen Graphen der Funktion und ein Eingabefeld, um die Steigung einzugeben. Der Schüler sieht nur den Graphen und kennt die Funktion nicht. Er soll die Steigung allein durch Betrachten des Graphen bestimmen"
+        }"""
+    
     def prompt_topic_id(self, task_description, topics_lookup):
         return f"""
         Below you will receive a description of a learning task followed by a list of 
@@ -453,8 +483,6 @@ class GenerationManager:
         obj = json.loads(obj_str)
         
         print("\n\n",obj, "\n\n")
-        
-
         return obj
 
     def generate(self, prompt):
@@ -483,20 +511,11 @@ class GenerationManager:
                         "script":{
                             "type":"string"
                         },
-                        "title":{
-                            "type": "object"
-                        },
-                        "description":{
-                            "type":"object"
-                        },
-                        "task_id":{
-                            "type":"string"
-                        },
                         "p5js":{
                             "type":"string"
                         }
                     },
-                    "required": ["message", "events","text", "script","title", "description", "task_id"]
+                    "required": ["message", "events","text", "script"]
                 }
             }
         ],
@@ -518,6 +537,39 @@ class GenerationManager:
         obj = json.loads(obj_str)
         return obj
     
+    def generate_description(self, task, template, dialog):
+        prompt = self.prompt_description(task,template, dialog)
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            functions=[
+                {
+                    "name": "create_json",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "title":{
+                                "type": "object"
+                            },
+                            "description":{
+                                "type":"object"
+                            },
+                            "task_id":{
+                                "type":"string"
+                            }
+                        },
+                        "required": ["title", "description","task_id"]
+                    }
+                }
+            ],
+            function_call={"name": "create_json"}
+        )
+        obj_str = response.choices[0].message.function_call.arguments
+        obj = json.loads(obj_str)
+        return obj
+
     def find_topic_id(self, task_description, topics_lookup):
         prompt = self.prompt_topic_id(task_description, topics_lookup)
         response = self.client.chat.completions.create(

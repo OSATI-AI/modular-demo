@@ -187,9 +187,35 @@
             document.dispatchEvent(customEvent);
         });
 
+
         document.getElementById('save-task-btn').addEventListener('click', async () => {
             // Show spinner overlay
             document.getElementById('spinner-overlay').style.display = 'flex';
+
+            // Fetch the task description if it doesn't exist
+            const descriptionResponse = await fetch('/description', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ task: currentTask, template: currentTemplate, dialog: dialog })
+            });
+
+            if (descriptionResponse.ok) {
+                const descriptionData = await descriptionResponse.json();
+                if (descriptionData.status === 'success') {
+                    currentTask = descriptionData.task;
+                } else {
+                    alert('Failed to generate task description.');
+                    document.getElementById('spinner-overlay').style.display = 'none';
+                    return;
+                }
+            } else {
+                alert('Failed to generate task description.');
+                document.getElementById('spinner-overlay').style.display = 'none';
+                return;
+            }
 
             // Fill the popup with current task details
             document.getElementById('title-english').value = currentTask.title.english || '';
@@ -219,6 +245,7 @@
                 },
                 body: JSON.stringify({ task: currentTask })
             });
+
             // Hide spinner overlay
             document.getElementById('spinner-overlay').style.display = 'none';
 
@@ -239,6 +266,7 @@
                 alert('Failed to fetch data.');
             }
         });
+
 
         function check_task_id(taskIdValue, existingTaskIds){
             const taskIdInput= document.getElementById('task-id');
