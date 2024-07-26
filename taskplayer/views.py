@@ -19,7 +19,7 @@ def load_tasks(tasks_dir=tasks_dir):
     # Load all tasks in the given directory and create list of tuples (title, filename, topic_id)
     for task_file in os.listdir(tasks_dir):
         if task_file.endswith('.json'):
-            with open(os.path.join(tasks_dir, task_file), 'r', encoding='utf-8') as file:
+            with open(os.path.join(tasks_dir, task_file), 'r', encoding='utf-8-sig') as file:
                 task = json.load(file)
                 tasks.append(task)
                 task_files.append(task_file)
@@ -366,7 +366,7 @@ def save_task(request):
         task_path = os.path.join(tasks_dir, f'{task_id}.json')
 
         with open(task_path, 'w') as task_file:
-            json.dump(task, task_file)
+            json.dump(task, task_file, ensure_ascii=True, indent=4)
 
         return JsonResponse({'status': 'success', 'message': 'Task saved successfully.'})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})

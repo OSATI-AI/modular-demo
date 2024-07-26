@@ -4,7 +4,7 @@ from openai import OpenAI
 import os
 
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
-MODEL =  "openai/gpt-4o" #"meta-llama/llama-3.1-405b-instruct" #
+MODEL = "openai/gpt-4o"#"mistralai/mistral-large" # #"openai/gpt-4o-mini"# #"meta-llama/llama-3.1-405b-instruct" #
 
 class ConversationManager:
     def __init__(self, api_key, model_name=MODEL, api_base='https://openrouter.ai/api/v1'):

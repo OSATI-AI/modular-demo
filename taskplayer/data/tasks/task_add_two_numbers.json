@@ -1,0 +1,29 @@
+{
+    "task_id": "task_add_two_numbers",
+    "template_id": "template_question_answer",
+    "title": {
+      "english": "Addition Task",
+      "german": "Additionsaufgabe"
+    },
+    "description": {
+      "english": "In this task, the student is asked to find the sum of two randomly generated numbers. The numbers are displayed in an equation format as 'number1 + number2 = '. The layout includes a question text at the top that asks 'What is the sum of the two numbers?' in both English and German. The student interacts with a math-field input element where the equation is displayed and the answer part is left as a placeholder for the student to fill in. The task sends and receives events such as evaluation of the answer, refreshing the task, and getting task details. There is no visual aid other than the equation itself.",
+      "german": "Bei dieser Aufgabe wird der Schüler gebeten, die Summe von zwei zufällig generierten Zahlen zu ermitteln. Die Zahlen werden im Format 'number1 + number2 = ' angezeigt. Das Layout enthält oben einen Fragentext, der auf Englisch und Deutsch fragt: 'Was ist die Summe der beiden Zahlen?'. Der Schüler interagiert mit einem Math-Field-Eingabeelement, in dem die Gleichung angezeigt wird und der Antwortteil als Platzhalter für den Schüler zum Ausfüllen bleibt. Die Aufgabe sendet und empfängt Ereignisse wie die Bewertung der Antwort, das Aktualisieren der Aufgabe und das Abrufen von Aufgabeninformationen. Es gibt keine visuelle Hilfe außer der Gleichung selbst."
+    },
+    "topic_id": 17,
+    "events": {
+      "send": ["evaluationResult", "task_details", "task_loaded"],
+      "receive": ["evaluate", "refresh", "get_task_details"]
+    },
+    "text": {
+      "text_question": {
+        "english": "What is the sum of the two numbers?",
+        "german": "Was ist die Summe der beiden Zahlen?"
+      },
+      "text_answer": {
+        "english": "Answer",
+        "german": "Antwort"
+      }
+    },
+    "script": "let number1, number2, correctAnswer;\nconst { questionElement, imagePlaceholder, answerElement } = playerApi.callTemplateScript('createLayout', {});\n\nfunction generateExercise() {\n  number1 = Math.floor(Math.random() * 100) + 1;\n  number2 = Math.floor(Math.random() * 100) + 1;\n  correctAnswer = number1 + number2;\n  questionElement.innerHTML = \"{{text_question}}\";\n  questionElement.setAttribute('text_map', 'text_question');\n\n  const answerField = document.createElement(\"math-field\");\n  answerField.id = \"equation\";\n  const equation = `${number1} + ${number2} = \\\\placeholder[answer]{}`;\n  answerField.setValue(equation);\n  answerField.mathVirtualKeyboardPolicy = \"manual\";\n  answerField.readonly = true;\n  answerElement.append(answerField);\n  playerApi.sendEvent('task_loaded', {});\n}\n\nfunction init() {\n  playerApi.receiveEvent('evaluate', function() {\n    const userInput = parseInt(document.querySelector('math-field').getValue().split('=')[1].trim(), 10);\n    const isCorrect = userInput === correctAnswer;\n    playerApi.sendEvent('evaluationResult', { userInput, result: correctAnswer, isCorrect });\n  });\n\n  playerApi.receiveEvent('refresh', function() {\n    answerElement.innerHTML = '';\n    generateExercise();\n  });\n\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = `Current exercise: The numbers are ${number1} and ${number2}, and their sum is ${correctAnswer}.`;\n    playerApi.sendEvent('task_details', {\n      staticInfo: taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n}\n\ninit();\ngenerateExercise();"
+  }
+  

@@ -22,6 +22,7 @@
       let text = this.buildText(task.text, language);
       let template = Handlebars.compile(JSON.stringify(task));
       let task_str = template(text)
+      task_str = he.decode(task_str)
       return JSON.parse(task_str)
     }
 
@@ -39,6 +40,9 @@
     
       openTask(task, template, language ="english") {
         this.events = []
+        
+        console.log(task)
+
 
         try {
             // Fill text based on the selected language
