@@ -1,0 +1,204 @@
+{
+  "levels": {
+    "1": {
+      "english": "Class 5/6",
+      "german": "Klasse 5/6"
+    },
+    "2": {
+      "english": "Class 7/8",
+      "german": "Klasse 7/8"
+    },
+    "3": {
+      "english": "Class 9/10",
+      "german": "Klasse 9/10"
+    },
+    "4": {
+      "english": "Class 11/12 (basic course)",
+      "german": "Klasse 11/12 (Basisfach)"
+    },
+    "5": {
+      "english": "Class 11/12 (advanced course)",
+      "german": "Klasse 11/12 (Leistungsfach)"
+    }
+  },
+  "key_ideas": {
+    "1": {
+      "english": "Sociocultural Orientation Knowledge",
+      "german": "Soziokulturelles Orientierungswissen"
+    },
+    "2": {
+      "english": "Intercultural Communicative Competence",
+      "german": "Interkulturelle kommunikative Kompetenz"
+    },
+    "3": {
+      "english": "Functional Communicative Competence",
+      "german": "Funktionale kommunikative Kompetenz"
+    },
+    "4": {
+      "english": "Text and Media Competence",
+      "german": "Text- und Medienkompetenz"
+    }
+  },
+  "topics": {
+    "1": {
+      "title": {
+        "english": "Sociocultural Orientation Knowledge",
+        "german": "Soziokulturelles Orientierungswissen"
+      },
+      "key_idea": 1,
+      "level": 1
+    },
+    "2": {
+      "title": {
+        "english": "Intercultural Communicative Competence",
+        "german": "Interkulturelle kommunikative Kompetenz"
+      },
+      "key_idea": 2,
+      "level": 1
+    },
+    "3": {
+      "title": {
+        "english": "Functional Communicative Competence",
+        "german": "Funktionale kommunikative Kompetenz"
+      },
+      "key_idea": 3,
+      "level": 1
+    },
+    "4": {
+      "title": {
+        "english": "Text and Media Competence",
+        "german": "Text- und Medienkompetenz"
+      },
+      "key_idea": 4,
+      "level": 1
+    },
+    "5": {
+      "title": {
+        "english": "Sociocultural Orientation Knowledge",
+        "german": "Soziokulturelles Orientierungswissen"
+      },
+      "key_idea": 1,
+      "level": 2
+    },
+    "6": {
+      "title": {
+        "english": "Intercultural Communicative Competence",
+        "german": "Interkulturelle kommunikative Kompetenz"
+      },
+      "key_idea": 2,
+      "level": 2
+    },
+    "7": {
+      "title": {
+        "english": "Functional Communicative Competence",
+        "german": "Funktionale kommunikative Kompetenz"
+      },
+      "key_idea": 3,
+      "level": 2
+    },
+    "8": {
+      "title": {
+        "english": "Text and Media Competence",
+        "german": "Text- und Medienkompetenz"
+      },
+      "key_idea": 4,
+      "level": 2
+    },
+    "9": {
+      "title": {
+        "english": "Sociocultural Orientation Knowledge",
+        "german": "Soziokulturelles Orientierungswissen"
+      },
+      "key_idea": 1,
+      "level": 3
+    },
+    "10": {
+      "title": {
+        "english": "Intercultural Communicative Competence",
+        "german": "Interkulturelle kommunikative Kompetenz"
+      },
+      "key_idea": 2,
+      "level": 3
+    },
+    "11": {
+      "title": {
+        "english": "Functional Communicative Competence",
+        "german": "Funktionale kommunikative Kompetenz"
+      },
+      "key_idea": 3,
+      "level": 3
+    },
+    "12": {
+      "title": {
+        "english": "Text and Media Competence",
+        "german": "Text- und Medienkompetenz"
+      },
+      "key_idea": 4,
+      "level": 3
+    },
+    "13": {
+      "title": {
+        "english": "Sociocultural Orientation Knowledge",
+        "german": "Soziokulturelles Orientierungswissen"
+      },
+      "key_idea": 1,
+      "level": 4
+    },
+    "14": {
+      "title": {
+        "english": "Intercultural Communicative Competence",
+        "german": "Interkulturelle kommunikative Kompetenz"
+      },
+      "key_idea": 2,
+      "level": 4
+    },
+    "15": {
+      "title": {
+        "english": "Functional Communicative Competence",
+        "german": "Funktionale kommunikative Kompetenz"
+      },
+      "key_idea": 3,
+      "level": 4
+    },
+    "16": {
+      "title": {
+        "english": "Text and Media Competence",
+        "german": "Text- und Medienkompetenz"
+      },
+      "key_idea": 4,
+      "level": 4
+    },
+    "17": {
+      "title": {
+        "english": "Sociocultural Orientation Knowledge",
+        "german": "Soziokulturelles Orientierungswissen"
+      },
+      "key_idea": 1,
+      "level": 5
+    },
+    "18": {
+      "title": {
+        "english": "Intercultural Communicative Competence",
+        "german": "Interkulturelle kommunikative Kompetenz"
+      },
+      "key_idea": 2,
+      "level": 5
+    },
+    "19": {
+      "title": {
+        "english": "Functional Communicative Competence",
+        "german": "Funktionale kommunikative Kompetenz"
+      },
+      "key_idea": 3,
+      "level": 5
+    },
+    "20": {
+      "title": {
+        "english": "Text and Media Competence",
+        "german": "Text- und Medienkompetenz"
+      },
+      "key_idea": 4,
+      "level": 5
+    }
+  }
+}

@@ -95,12 +95,13 @@ class GenerationManager:
         for their students. Your job is to listen to the description and requirements of the teacher
         and create a task according to certain design rules."""
         
-    def prompt_analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions, img_path):
+    def prompt_analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions, img_path, subject):
         prompt =  f""" You will receive the user's message and the complete previous dialog which includes 
         the description of the learning task that should be created. Work through the following steps and give your answer in json format.
 
         PREVIOUS_MESSAGE: {user_message}
         FULL_DIALOG: {dialog}
+        SCHOOL_SUBJECT: {subject}
 
         STEP 1:
         Below you find a list of descriptions of tasks that already exists. Check all of them and decide,
@@ -179,7 +180,7 @@ class GenerationManager:
             """
         return prompt
 
-    def prompt_generate(self, user_message,dialog, template, example_task, img_path):
+    def prompt_generate(self, user_message,dialog, template, example_task, img_path, subject):
 
         script = example_task["script"]
         text = example_task["text"]
@@ -191,6 +192,7 @@ class GenerationManager:
 
         PREVIOUS_MESSAGE: {user_message}
         FULL_DIALOG: {dialog}
+        SCHOOL SUBJECT: {subject}
 
         You will create a object that contains certain descriptive fields as well as javascript code that controlls the elements of the task.
         The object also defines and handles certain events that manages communication with the application
@@ -422,8 +424,8 @@ class GenerationManager:
         {topics_lookup}
         """
 
-    def analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions, img_path):
-        prompt = self.persona()+"\n"+self.prompt_analyse(user_message,dialog, existing_tasks, templates, p5js_functions, img_path)
+    def analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions, img_path, subject):
+        prompt = self.persona()+"\n"+self.prompt_analyse(user_message,dialog, existing_tasks, templates, p5js_functions, img_path, subject)
         
         start = time.time()
         response = self.client.chat.completions.create(

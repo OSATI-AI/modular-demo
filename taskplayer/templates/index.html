@@ -12,6 +12,18 @@
     <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/he/he.min.js"></script>
     <script>
+        let id_to_subject = {
+            0:"math", 
+            1:"english"
+        }; 
+
+        let subject_to_id = {
+            "math":0, 
+            "english":1
+        };
+
+        let subjects = []
+
         function toggleVisibility(element) {
             var nextElement = element.nextElementSibling;
             var arrow = element.querySelector('.arrow');
@@ -35,9 +47,21 @@
             }
         }
 
+        function refresh(){
+            window.location.href = `/?lang=${getLanguage()}&subject=${getSubject()}`;
+        }
+
         function setLanguage(language) {
             localStorage.setItem('selectedLanguage', language);
-            window.location.href = `/?lang=${language}`;
+            refresh()
+        }
+
+        function setSubject(subject){
+            localStorage.setItem('selectedSubject', subject);
+        }
+
+        function getSubject(){
+            return localStorage.getItem('selectedSubject') || 'math';
         }
 
         function getLanguage() {
@@ -48,6 +72,40 @@
             const lang = getLanguage();
             window.location.href = `/generate?lang=${lang}`;
         }
+
+        function set_dropdown_items_subject(language) {
+            const dropdown = document.getElementById('subject-dropdown');
+            const label = document.getElementById('dropdown-label');
+            dropdown.innerHTML = ''; // Clear previous items
+
+            if (language === 'german') {
+                label.textContent = 'Fach:';
+                subjects = ['Mathe', 'Englisch'];
+                subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    dropdown.appendChild(option);
+                });
+            } else if (language === 'english') {
+                label.textContent = 'Subject:';
+                subjects = ['Math', 'English'];
+                subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    dropdown.appendChild(option);
+                });
+            }
+        }
+
+        function onDropdownChange() {
+            const dropdown = document.getElementById('subject-dropdown');
+            const selectedIndex = dropdown.selectedIndex;
+            setSubject(id_to_subject[selectedIndex]);
+            refresh() 
+        }
+
     </script>
 </head>
 <body>
@@ -60,7 +118,7 @@
         <div id="menu" class="menu">
             <div class="menu-header" id="settings-header"></div>
             <div class="menu-item">
-                <div class="dropdown-label" id="language-label"></div>
+                <div class="dropdown-label-header" id="language-label"></div>
                 <select id="language-select" onchange="setLanguage(this.value)">
                     <option value="english">English</option>
                     <option value="german">German</option>
@@ -71,6 +129,13 @@
 
     <div class="container">
         <div class="sidebar">
+
+            <div class="dropdown-container">
+                <label for="subject-dropdown" id = "dropdown-label" class="dropdown-label">Subject:</label>
+                <select id="subject-dropdown" class="dropdown" onchange="onDropdownChange()">
+                </select>
+            </div>
+
             <!-- Sidebar items will be added here by the Django view -->
             {% for level, key_ideas in structured_tasks.items %}
                 <div class="level">
@@ -131,7 +196,7 @@
         let actionLog = "[No user interactions so far]";
 
         window.loadTask = function(taskId) {
-            fetch(`/load_task/?task_id=${taskId}&lang=${getLanguage()}`)
+            fetch(`/load_task/?task_id=${taskId}&lang=${getLanguage()}&subject=${getSubject()}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.task && data.template) {
@@ -320,7 +385,13 @@
         document.addEventListener('DOMContentLoaded', () => {
             updateMenuHeaderAndLabel();
             document.getElementById('language-select').value = getLanguage();
+            let subject_id = subject_to_id[getSubject()]
+            let subject_str = subjects[subject_id]
+            document.getElementById('subject-dropdown').value = subject_str;
         });
+
+        set_dropdown_items_subject(getLanguage()); 
+
     </script>
 </body>
 </html>

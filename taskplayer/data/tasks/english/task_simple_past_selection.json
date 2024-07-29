@@ -1,0 +1,37 @@
+{
+    "template_id": "template_multiple_choice",
+    "events": {
+        "send": [
+            "evaluationResult",
+            "task_details",
+            "task_loaded"
+        ],
+        "receive": [
+            "evaluate",
+            "refresh",
+            "get_task_details",
+            "choice_selected"
+        ]
+    },
+    "text": {
+        "text_question": {
+            "english": "Select the sentence in Simple Past:",
+            "german": "W\u00e4hle den Satz im Simple Past aus:"
+        },
+        "text_no_choice": {
+            "english": "No choice selected",
+            "german": "Keine Auswahl getroffen"
+        }
+    },
+    "script": "const SIMPLE_PAST_SENTENCES = [\n  'I went to the market yesterday.',\n  'She visited her grandmother last year.',\n  'They watched a movie last week.',\n  'He bought a new car last month.'\n];\n\nconst SIMPLE_PRESENT_SENTENCES = [\n  'I go to the market every day.',\n  'She visits her grandmother regularly.',\n  'They watch movies on weekends.',\n  'He buys new things often.'\n];\n\nconst NUM_CHOICES = 4;\nlet selectedChoice = null;\nlet correctAnswer = null;\n\nconst { questionElement, choiceElements } = playerApi.callTemplateScript('createLayout', { choices: NUM_CHOICES, choicesData: [] });\n\nfunction generateExercise() {\n  const pastSentence = SIMPLE_PAST_SENTENCES[Math.floor(Math.random() * SIMPLE_PAST_SENTENCES.length)];\n  const presentSentences = [];\n  while (presentSentences.length < NUM_CHOICES - 1) {\n    const sentence = SIMPLE_PRESENT_SENTENCES[Math.floor(Math.random() * SIMPLE_PRESENT_SENTENCES.length)];\n    if (!presentSentences.includes(sentence)) {\n      presentSentences.push(sentence);\n    }\n  }\n\n  const allSentences = [...presentSentences, pastSentence].sort(() => Math.random() - 0.5);\n  correctAnswer = allSentences.indexOf(pastSentence);\n\n  questionElement.innerText = '{{text_question}}';\n  allSentences.forEach((sentence, index) => {\n    choiceElements[index].innerText = sentence;\n  });\n\n  playerApi.sendEvent('task_loaded', {});\n}\n\nfunction init() {\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = `The task is to select the sentence in Simple Past. Correct sentence: ${choiceElements[correctAnswer].innerText}`;\n    playerApi.sendEvent('task_details', {\n      staticInfo: taskDetails.description,\n      dynamicDetails: dynamicDetails\n    });\n  });\n\n  playerApi.receiveEvent('evaluate', function() {\n    if (selectedChoice === null || selectedChoice === undefined) {\n      playerApi.sendEvent('evaluationResult', { result: '{{text_no_choice}}' });\n      return;\n    }\n    const isCorrect = selectedChoice === correctAnswer;\n    playerApi.sendEvent('evaluationResult', {\n      userInput: selectedChoice,\n      result: correctAnswer,\n      isCorrect: isCorrect\n    });\n  });\n\n  playerApi.receiveEvent('refresh', function() {\n    choiceElements.forEach(choice => choice.classList.remove('selected'));\n    selectedChoice = null;\n    generateExercise();\n  });\n\n  playerApi.receiveEvent('choice_selected', function(event) {\n    const id = event.id;\n    selectedChoice = id;\n  });\n}\n\ninit();\ngenerateExercise();",
+    "topic_id": 3,
+    "title": {
+        "english": "Simple Past Selection Task",
+        "german": "Aufgabe zur Auswahl des Simple Past"
+    },
+    "description": {
+        "english": "In this task, the user is presented with a multiple-choice question where they must select the sentence in Simple Past among four options. The task interface includes a question element that asks the student to select the Simple Past sentence. There are four clickable choices, one of which is a sentence in Simple Past and the other three are sentences in Simple Present. The Simple Past sentence includes signal words like 'yesterday', 'last year', or 'last week', which are randomly selected from a predefined list each time the task is loaded. The user can choose an answer, and their selection will be evaluated for correctness. The task also includes events for refreshing the choices, evaluating the user's selection, and providing task details upon request. The text is available in both English and German.",
+        "german": "Bei dieser Aufgabe wird dem Benutzer eine Multiple-Choice-Frage gestellt, bei der er den Satz im Simple Past aus vier Optionen ausw\u00e4hlen muss. Die Benutzeroberfl\u00e4che der Aufgabe enth\u00e4lt ein Fragelement, das den Sch\u00fcler auffordert, den Satz im Simple Past auszuw\u00e4hlen. Es gibt vier klickbare Auswahlm\u00f6glichkeiten, von denen eine ein Satz im Simple Past ist und die anderen drei S\u00e4tze im Simple Present sind. Der Satz im Simple Past enth\u00e4lt Signalw\u00f6rter wie 'yesterday', 'last year' oder 'last week', die jedes Mal, wenn die Aufgabe geladen wird, zuf\u00e4llig aus einer vordefinierten Liste ausgew\u00e4hlt werden. Der Benutzer kann eine Antwort ausw\u00e4hlen, und seine Auswahl wird auf Korrektheit \u00fcberpr\u00fcft. Die Aufgabe enth\u00e4lt auch Ereignisse zum Aktualisieren der Auswahlm\u00f6glichkeiten, zum Bewerten der Auswahl des Benutzers und zum Bereitstellen von Aufgabendetails auf Anfrage. Der Text ist sowohl auf Englisch als auch auf Deutsch verf\u00fcgbar."
+    },
+    "task_id": "task_simple_past_selection"
+}

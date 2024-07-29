@@ -54,7 +54,27 @@
         let currentTemplate = null;
         let currentP5js = null;
         let currentImagePath = null; 
+        let currentSubject = "math"; 
 
+        let id_to_subject = {
+            0:"math", 
+            1:"english"
+        }; 
+
+        let subject_to_id = {
+            "math":0, 
+            "english":1
+        };
+
+        let subjects = []
+        
+        function setSubject(subject){
+            localStorage.setItem('selectedSubject', subject);
+        }
+
+        function getSubject(){
+            return localStorage.getItem('selectedSubject') || 'math';
+        }
 
         function toggleMenu() {
             const menu = document.getElementById('menu');
@@ -67,11 +87,16 @@
 
         function navigateToTaskCollection() {
             const lang = getLanguage();
-            window.location.href = `/?lang=${lang}`;
+            window.location.href = `/?lang=${lang}&subject=${getSubject()}`;
+        }
+
+        function refresh(){
+            window.location.href = `/generate?lang=${getLanguage()}&subject=${getSubject()}`;
         }
 
         function setLanguage(language) {
             localStorage.setItem('selectedLanguage', language);
+            refresh()
         }
 
         function getLanguage() {
@@ -149,7 +174,37 @@
                 }
             }
 
+        function set_dropdown_items_subject(language) {
+            const dropdown = document.getElementById('subject-dropdown');
+            const label = document.getElementById('dropdown-label');
+            dropdown.innerHTML = ''; // Clear previous items
 
+            if (language === 'german') {
+                label.textContent = 'Fach:';
+                subjects = ['Mathe', 'Englisch'];
+                subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    dropdown.appendChild(option);
+                });
+            } else if (language === 'english') {
+                label.textContent = 'Subject:';
+                subjects = ['Math', 'English'];
+                subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    dropdown.appendChild(option);
+                });
+            }
+        }
+
+        function onDropdownChange() {
+            const dropdown = document.getElementById('subject-dropdown');
+            const selectedIndex = dropdown.selectedIndex;
+            setSubject(id_to_subject[selectedIndex]);
+        }
     </script>
 
 
@@ -164,7 +219,7 @@
         <div id="menu" class="menu">
             <div class="menu-header" id="settings-header">Settings</div>
             <div class="menu-item">
-                <div class="dropdown-label" id="language-label">Choose Language</div>
+                <div class="dropdown-label-popup" id="language-label">Choose Language</div>
                 <select id="language-select" onchange="setLanguage(this.value)">
                     <option value="english">English</option>
                     <option value="german">German</option>
@@ -184,6 +239,11 @@
         </div>
 
         <div class="left-column">
+            <div class="dropdown-container">
+                <label for="subject-dropdown" id = "dropdown-label" class="dropdown-label">Subject:</label>
+                <select id="subject-dropdown" class="dropdown" onchange="onDropdownChange()">
+                </select>
+            </div>
             <div id="chat_container">
                 <div id="chat_history"></div>
                 <div id="chat_input">
@@ -341,7 +401,7 @@
             document.getElementById('task-id').value = currentTask.task_id || '';
 
             // Fetch the list of existing task IDs
-            const taskIdsResponse = await fetch('/task_ids', {
+            const taskIdsResponse = await fetch(`/task_ids?subject=${getSubject()}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -359,7 +419,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({ task: currentTask })
+                body: JSON.stringify({ task: currentTask, subject: getSubject() })
             });
 
             // Hide spinner overlay
@@ -492,7 +552,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({ task: currentTask, p5js: currentP5js })
+                body: JSON.stringify({ task: currentTask, p5js: currentP5js, subject: getSubject() })
             });
 
             // Hide spinner overlay
@@ -603,7 +663,8 @@
             // Show spinner and set preview opacity
             preview.classList.add('loading');
             spinner.style.display = 'block'; // Show spinner
-    
+            
+            console.log(getSubject())
             // Send the message to the backend
             const response = await fetch('/generator_message', {
                 method: 'POST',
@@ -618,7 +679,8 @@
                     dialog: dialog,
                     p5js: currentP5js, 
                     image:currentImagePath,
-                    language: getLanguage() // Send selected language to the backend
+                    language: getLanguage(), // Send selected language to the backend
+                    subject: getSubject()
                 })
             });
     
@@ -688,6 +750,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('language-select').value = getLanguage();
+            set_dropdown_items_subject(getLanguage());
         });
         
         document.addEventListener('DOMContentLoaded', () => {

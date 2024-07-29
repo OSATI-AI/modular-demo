@@ -8,12 +8,12 @@ from django.views.decorators.csrf import csrf_exempt
 import re 
 from django.core.files.storage import FileSystemStorage
 
-tasks_dir = os.path.join(os.path.dirname(__file__), 'data/tasks')
+TASK_DIR = os.path.join(os.path.dirname(__file__), 'data/tasks')
 template_dir = os.path.join(os.path.dirname(__file__), 'data/templates')
 js_dir =  os.path.join(os.path.dirname(__file__), 'data/scripts')
 
 
-def load_tasks(tasks_dir=tasks_dir):
+def load_tasks(tasks_dir):
     tasks = []
     task_files = []
     # Load all tasks in the given directory and create list of tuples (title, filename, topic_id)
@@ -64,10 +64,12 @@ def structure_tasks(tasks, topics_lookup, language):
 
 def index(request):
     language = request.GET.get('lang', 'english')
-    tasks_dir = os.path.join(os.path.dirname(__file__), 'data/tasks')
+    subject =  request.GET.get('subject', 'math')
+    tasks_dir = os.path.join(TASK_DIR,subject)
     tasks, task_files = load_tasks(tasks_dir)
     tasks =  [(tasks[i]['title'][language], task_files[i], tasks[i]['topic_id']) for i in range(len(tasks))]
-    topics_lookup = get_topics_lookup()
+    topics_lookup = get_topics_lookup(subject)
+
     structured_tasks = structure_tasks(tasks, topics_lookup, language)
     return render(request, 'index.html', {'structured_tasks': structured_tasks, 'language': language})
 
@@ -77,9 +79,10 @@ def read_template(template_id):
         template = json.load(file)
     return template
 
-def read_task_and_template(task_id, language = "english"):
+def read_task_and_template(task_id, subject, language = "english"):
     if ".json" not in task_id:
         task_id+=".json"
+    tasks_dir = os.path.join(TASK_DIR,subject)
     task_file = os.path.join(tasks_dir, f'{task_id}')
     with open(task_file, 'r', encoding="utf-8") as file:
         task = json.load(file)
@@ -91,9 +94,10 @@ def read_task_and_template(task_id, language = "english"):
 def load_task(request):
     task_id = request.GET.get('task_id')
     language = request.GET.get('lang', 'english')
+    subject = request.GET.get('subject')
     js_code = ""
     if task_id:
-        task, template = read_task_and_template(task_id, language)
+        task, template = read_task_and_template(task_id, subject, language)
         # load external p5js code
         if "external_scripts" in task:
             for script_file in task["external_scripts"]:
@@ -101,8 +105,8 @@ def load_task(request):
         return JsonResponse({'task': task, 'template': template, 'p5js':js_code})
     return JsonResponse({'error': 'Task ID not provided'}, status=400)
 
-def get_topics_lookup():
-    with open(os.path.join(os.path.dirname(__file__), 'data/topics_lookup.json'), 'r', encoding='utf-8') as file:
+def get_topics_lookup(subject="math"):
+    with open(os.path.join(os.path.dirname(__file__), f'data/topics_lookup_{subject}.json'), 'r', encoding='utf-8') as file:
             topics_lookup = json.load(file)
     return topics_lookup
 
@@ -169,8 +173,9 @@ def get_js_code(path, filename):
         content = js_file.read()
     return content
 
-def get_example_task(template):
+def get_example_task(template,subject="math"):
     task_file = template["example_task"]+".json"
+    tasks_dir = os.path.join(TASK_DIR,subject)
     filepath = os.path.join(tasks_dir, task_file)
     if not os.path.exists(filepath):
         # example task does not exist
@@ -200,14 +205,23 @@ def generator_message(request):
         dialog = data.get('dialog', None)
         language = data.get('language', None)
         img_path = data.get('image', None)
+        subject = data.get('subject', None)
 
         bool_generate_p5js = False
         bool_update = False
         p5js_code = None
         p5js_file = None
 
+        
+
+        tasks_dir = os.path.join(TASK_DIR,subject)
+
+        print(tasks_dir)
+
         # GET EXISTING TASK DESCRIPTIONS
         existing_tasks = load_task_description(tasks_dir)
+
+        print(existing_tasks)
 
         # LOAD TEMPLATES 
         templates = load_templates(template_dir)
@@ -216,10 +230,10 @@ def generator_message(request):
         p5js_functions = get_js_descriptions(js_dir)
         
         # TEST
-        task_analysis = generation_manager.analyse(user_message,dialog, existing_tasks, templates, p5js_functions, img_path)
+        task_analysis = generation_manager.analyse(user_message,dialog, existing_tasks, templates, p5js_functions, img_path, subject)
         task_id = task_analysis["existing_task"]
         if task_id:
-            task, template = read_task_and_template(task_id, language)
+            task, template = read_task_and_template(task_id, subject, language)
             message = task_analysis["message"]
             if "external_scripts" in task:
                 p5js_code = ""
@@ -236,7 +250,7 @@ def generator_message(request):
                 example_task.pop('topic_id')
             
             # base generation (no figure, no update)
-            prompt = generation_manager.prompt_generate(user_message,dialog,json.dumps(template),example_task, img_path)
+            prompt = generation_manager.prompt_generate(user_message,dialog,json.dumps(template),example_task, img_path, subject)
 
             # Optional Figure Prompt
             if task_analysis["figure"] and task_analysis["figure_path"] is None:
@@ -332,7 +346,8 @@ def topic_lookup(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         task = data.get('task', None)
-        topics_lookup = get_topics_lookup()
+        subject = data.get('subject', None)
+        topics_lookup = get_topics_lookup(subject)
         topic_id = generation_manager.find_topic_id(task["description"]["english"], json.dumps(topics_lookup))
 
         return JsonResponse({'status': 'success', 'topic_id': topic_id, 'lookup': topics_lookup})
@@ -341,7 +356,9 @@ def topic_lookup(request):
 @csrf_exempt
 def task_ids(request):
     if request.method == 'GET':
-        _, task_files = load_tasks()
+        subject = request.GET.get('subject')
+        tasks_dir = os.path.join(TASK_DIR,subject)
+        _, task_files = load_tasks(tasks_dir)
         task_ids = [f[:-5] for f in task_files]
 
         return JsonResponse({'status': 'success', 'task_ids': task_ids})
@@ -353,6 +370,9 @@ def save_task(request):
         data = json.loads(request.body)
         task = data.get('task', None)
         p5js = data.get('p5js', None)
+        subject = data.get('subject', None)
+
+        tasks_dir = os.path.join(TASK_DIR,subject)
 
         # if new p5js was generated, save it to a js file
         if p5js and "external_scripts" not in task:
