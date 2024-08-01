@@ -235,7 +235,9 @@ def generator_message(request):
             if current_task:
                 prompt += generation_manager.prompt_generate_update(current_task, current_p5js)
                 bool_update = True
+
             prompt += generation_manager.prompt_output_format(bool_update, bool_generate_p5js)
+            
             response = generation_manager.generate(prompt)
    
             message = response["message"]

@@ -81,7 +81,7 @@ EXAMPLE_P5JS = """
         };"""
 
 
-MODEL = "anthropic/claude-3.5-sonnet"#"gpt-4o"#"meta-llama/llama-3.1-405b-instruct"#"gpt-4o"#"openai/gpt-4o-mini"#""#"" 
+MODEL = "gpt-4o"#"anthropic/claude-3.5-sonnet"#"meta-llama/llama-3.1-405b-instruct"#"gpt-4o"#"openai/gpt-4o-mini"#""#"" 
 
 class GenerationManager:
     def __init__(self, api_key, model_name=MODEL, api_base='https://openrouter.ai/api/v1'):
@@ -213,7 +213,15 @@ class GenerationManager:
         Example: answerLabel.innerHTML = "<b>{{name}}: </b>";
         Every text element has to be declared in the "text" field and need a unique identifier to reference it in the javascript code.
         So even if we have a list of text elements that should be displayed somewhere, every text element need an id and has to be
-        referenced with double curly brackets. 
+        referenced with double curly brackets. In general, you can always just refer the name of the variable without the language since 
+        the the correct language will be picked later by a different part of the code. However when a text should always be in a certain language,
+        e.g. in tasks where the student has to translate something, then you have to explicitly reference the text in this language
+        by using VARIABLE.LANGUAGE inside the curly brackets e.g. {{name.english}}.
+        
+        When the subject is "English" this means, it is english as a foreign language. So if the student
+        should translate something or some parts of the exercise are required to be in english do not provide a german translation for these texts but
+        rather use the english text for both german: and english: to ensure that the correct english text is displayed, no matter what language
+        the task is rendered in.
 
         You are not supposed to handle feedback to the user. The only thing you have to take care is to handle the evaluation
         event and return an object in the format: 
@@ -545,6 +553,49 @@ class GenerationManager:
         #obj_str = response.choices[0].message.content
         obj = json.loads(obj_str)
         return obj
+
+
+    # def generate(self, prompt):
+    #     prompt = self.persona() + "\n" + prompt
+    #     prompt += """
+    #     First, only create the message to the user, the events that are sended and received by the task and the texts that are used.
+    #     Output a valid JSON file and use only the fields listed below:
+    #     message: "[YOUR MESSAGE]" [Give a short answer to the previous user message in which you explain what you 
+    #     just did and what changes you have added. But keep it short and simple and do not provide
+    #     technical details like code. Just stick to what happend to the task layout or behavior.
+    #     Always answer in the same language as the previous user message was written in.]
+    #     "events":[YOUR EVENTS OBJECT][Here you will creat a object that contains all outgoing and incoming events that are handled in the script]
+    #     "text":[YOUR TEXT OBJECT][Here you will specify all texts that are used in the script. Output a object that contains english and german translations for every text element. For text that contains "you", always use the "Du" in the german translation instead of "Sie"]"""
+
+
+    #     print("\n\n", prompt, "\n\n")
+
+    #     model_gen = "anthropic/claude-3.5-sonnet"
+
+    #     messages=[{"role": "user", "content": prompt}]
+
+    #     response = self.client.chat.completions.create(
+    #         model=model_gen,
+    #         response_format={ "type": "json_object" },
+    #         messages=messages
+    #     )
+
+    #     obj_str = response.choices[0].message.content
+    #     obj = json.loads(obj_str)
+    #     print("\n\n", obj, "\n\n")
+    #     messages.append({"role":"assistant", "content":obj_str})
+    #     messages.append({"role":"user", "content":"Now create the script. Provide only javascript code without any additional explanations and without ```javascript code tags"})
+
+    #     response = self.client.chat.completions.create(
+    #         model=model_gen,
+    #         messages=messages
+    #     )
+    #     script = response.choices[0].message.content
+    #     print("\n\n", script, "\n\n")
+
+    #     obj["script"] = script
+
+    #     return obj
     
     def generate_description(self, task, template, dialog):
         prompt = self.prompt_description(task,template, dialog)

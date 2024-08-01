@@ -19,26 +19,32 @@
 
 
     fillText(task, language) {
-      let text = this.buildText(task.text, language);
-      let template = Handlebars.compile(JSON.stringify(task));
+      let text = task.text
+      task = JSON.stringify(task)
+      task = this.buildText(task, language)
+      let template = Handlebars.compile(task);
       let task_str = template(text)
       task_str = he.decode(task_str)
       return JSON.parse(task_str)
     }
 
-    buildText(text_obj, language) {
-      let template = {};
-      for (const [key, value] of Object.entries(text_obj)) {
-          if (Array.isArray(value)) {
-              template[key] = value.map(item => item[language]);
-          } else {
-              template[key] = value[language];
-          }
-      }
-      return template;
-  }
+    buildText(text, language) {
+      // Regular expression to find {{anything}} patterns
+      const regex = /{{(.*?)}}/g;
     
-      openTask(task, template, language ="english") {
+      // Replace the patterns in the text
+      return text.replace(regex, (match, p1) => {
+        // Check if the content inside curly brackets already contains a dot
+        if (p1.includes('.')) {
+          return match; // If it contains a dot, return the match unchanged
+        } else {
+          return `{{${p1}.${language}}}`; // Otherwise, add the language
+        }
+      });
+    }
+
+    
+    openTask(task, template, language ="english") {
         this.events = []
         
         console.log(task)
