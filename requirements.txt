@@ -10,3 +10,4 @@ whitenoise==6.4.0
 psycopg[binary]==3.1.8
 environs[django]==9.5.0
 openai
+fauna

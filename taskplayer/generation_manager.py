@@ -81,7 +81,7 @@ EXAMPLE_P5JS = """
         };"""
 
 
-MODEL = "gpt-4o"#"meta-llama/llama-3.1-405b-instruct"#"gpt-4o"#"openai/gpt-4o-mini"#""#"" 
+MODEL = "anthropic/claude-3.5-sonnet"#"gpt-4o"#"meta-llama/llama-3.1-405b-instruct"#"gpt-4o"#"openai/gpt-4o-mini"#""#"" 
 
 class GenerationManager:
     def __init__(self, api_key, model_name=MODEL, api_base='https://openrouter.ai/api/v1'):
@@ -107,9 +107,9 @@ class GenerationManager:
         Below you find a list of descriptions of tasks that already exists. Check all of them and decide,
         if any of those tasks matches all of the requirements of the described task. If you found a task
         that implements all features of what the user asked for, add the field "existing_task" to your
-        answer and give the name of the task as value. 
+        answer and give the id of the task as value. 
         Example: 
-        "existing_task": "task_gradient.json"
+        "existing_task": "404826057133261008"
         If you found and existing task, add a field "message" to your answer as well and describe that 
         found an existing task that could match the requirements, then ask if the user is happy with this
         choice or if he/she wants to change someting. Do not mention the filename of the task, the user
@@ -468,20 +468,23 @@ class GenerationManager:
             ],
             function_call={"name": "create_json"}
         )
-        response_time = round(time.time()-start,3)
 
-        input_token = response.usage.prompt_tokens
-        output_token = response.usage.completion_tokens
+        # response_time = round(time.time()-start,3)
+
+        # input_token = response.usage.prompt_tokens
+        # output_token = response.usage.completion_tokens
 
         print("\n\n\n------------------------\n")
         print("ANALYSIS")
-        print("   - Time: ", response_time, "s")
-        print("   - Input Token: ", input_token)
-        print("   - Output Token: ", output_token)
+        # print("   - Time: ", response_time, "s")
+        # print("   - Input Token: ", input_token)
+        # print("   - Output Token: ", output_token)
         
         print("\n------------------------\\n\n\n")
+        # print(response)
         
         obj_str = response.choices[0].message.function_call.arguments
+        #obj_str = response.choices[0].message.content
         obj = json.loads(obj_str)
         
         print("\n\n",obj, "\n\n")
@@ -490,6 +493,9 @@ class GenerationManager:
     def generate(self, prompt):
         prompt = self.persona() + "\n" + prompt
         start = time.time()
+
+        print("\n\n", prompt, "\n\n")
+
         response = self.client.chat.completions.create(
         model=self.model,
         messages=[
@@ -536,6 +542,7 @@ class GenerationManager:
         print("\n------------------------\\n\n\n")
     
         obj_str = response.choices[0].message.function_call.arguments
+        #obj_str = response.choices[0].message.content
         obj = json.loads(obj_str)
         return obj
     

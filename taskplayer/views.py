@@ -4,41 +4,30 @@ import os
 import json
 from .conversation_manager import conversation_manager
 from .generation_manager import generation_manager
+from .db_manager import DB
 from django.views.decorators.csrf import csrf_exempt
 import re 
 from django.core.files.storage import FileSystemStorage
 
-TASK_DIR = os.path.join(os.path.dirname(__file__), 'data/tasks')
 template_dir = os.path.join(os.path.dirname(__file__), 'data/templates')
 js_dir =  os.path.join(os.path.dirname(__file__), 'data/scripts')
+db = DB()
 
 
-def load_tasks(tasks_dir):
-    tasks = []
-    task_files = []
-    # Load all tasks in the given directory and create list of tuples (title, filename, topic_id)
-    for task_file in os.listdir(tasks_dir):
-        if task_file.endswith('.json'):
-            with open(os.path.join(tasks_dir, task_file), 'r', encoding='utf-8-sig') as file:
-                task = json.load(file)
-                tasks.append(task)
-                task_files.append(task_file)
-    return tasks, task_files
+def load_tasks(subject):
+   tasks = db.get_tasks_by_subject(subject) 
+   return tasks
 
-def load_task_description(tasks_dir):
+def load_task_description(subject):
     tasks = {}
-    # Load all tasks in the given directory and create list of tuples (title, filename, topic_id)
-    for task_file in os.listdir(tasks_dir):
-        if task_file.endswith('.json'):
-            with open(os.path.join(tasks_dir, task_file), 'r', encoding='utf-8') as file:
-                task = json.load(file)
-                tasks[task_file] = task['description']["english"]
+    for task in db.get_tasks_by_subject(subject):
+        tasks[task["fauna_id"]] = task['description']["english"]        
     return tasks
 
 def structure_tasks(tasks, topics_lookup, language):
     structured_tasks = {}
 
-    for title, filename, topic_id in tasks:
+    for title, fauna_id, topic_id in tasks:
         if topic_id < 0:
             continue
         topic = topics_lookup['topics'][str(topic_id)]
@@ -58,16 +47,16 @@ def structure_tasks(tasks, topics_lookup, language):
         if topic_name not in structured_tasks[level_name][key_idea_name]:
             structured_tasks[level_name][key_idea_name][topic_name] = []
         
-        structured_tasks[level_name][key_idea_name][topic_name].append((title, filename))
+        structured_tasks[level_name][key_idea_name][topic_name].append((title, fauna_id))
     
     return structured_tasks
 
 def index(request):
     language = request.GET.get('lang', 'english')
     subject =  request.GET.get('subject', 'math')
-    tasks_dir = os.path.join(TASK_DIR,subject)
-    tasks, task_files = load_tasks(tasks_dir)
-    tasks =  [(tasks[i]['title'][language], task_files[i], tasks[i]['topic_id']) for i in range(len(tasks))]
+    tasks = load_tasks(subject)
+    tasks =  [(tasks[i]['title'][language], tasks[i]["fauna_id"], tasks[i]['topic_id']) for i in range(len(tasks))]
+    
     topics_lookup = get_topics_lookup(subject)
 
     structured_tasks = structure_tasks(tasks, topics_lookup, language)
@@ -80,12 +69,7 @@ def read_template(template_id):
     return template
 
 def read_task_and_template(task_id, subject, language = "english"):
-    if ".json" not in task_id:
-        task_id+=".json"
-    tasks_dir = os.path.join(TASK_DIR,subject)
-    task_file = os.path.join(tasks_dir, f'{task_id}')
-    with open(task_file, 'r', encoding="utf-8") as file:
-        task = json.load(file)
+    task = db.get_task_by_id(task_id)
     template_id = f'{task["template_id"]}.json'
     template = read_template(template_id)
     
@@ -174,25 +158,13 @@ def get_js_code(path, filename):
     return content
 
 def get_example_task(template,subject="math"):
-    task_file = template["example_task"]+".json"
-    tasks_dir = os.path.join(TASK_DIR,subject)
-    filepath = os.path.join(tasks_dir, task_file)
-    if not os.path.exists(filepath):
-        # example task does not exist
-        # Fallback 1 choose first task that uses this template
-        tasks, task_files = load_tasks()
-        task_files_template = [task_files[i] for i in range(len(task_files)) if tasks[i]["template_id"] == template["template_id"]]
-        if len(task_files_template)>0:
-            filepath = os.path.join(tasks_dir, task_files_template[0])
-        else:
-            # no tasks for this template
-            # Fallback 2 choose first task in list of all tasks 
-            filepath = os.path.join(tasks_dir, task_files[0])
-    with open(filepath, 'r', encoding='utf-8') as file:
-        task = json.load(file)
-            
-
-    return task
+    tasks = db.get_all_tasks()
+    example_id = template["example_task"]
+    for task in tasks:
+        if task["task_id"] == example_id:
+            return task 
+    print("\n\n\n XXXXXXXX EXAMPLE TASK NOT FOUND XXXXXXXX \n\n\n")
+    return None
 
 @csrf_exempt
 def generator_message(request):
@@ -213,15 +185,8 @@ def generator_message(request):
         p5js_file = None
 
         
-
-        tasks_dir = os.path.join(TASK_DIR,subject)
-
-        print(tasks_dir)
-
         # GET EXISTING TASK DESCRIPTIONS
-        existing_tasks = load_task_description(tasks_dir)
-
-        print(existing_tasks)
+        existing_tasks = load_task_description(subject)
 
         # LOAD TEMPLATES 
         templates = load_templates(template_dir)
@@ -357,10 +322,8 @@ def topic_lookup(request):
 def task_ids(request):
     if request.method == 'GET':
         subject = request.GET.get('subject')
-        tasks_dir = os.path.join(TASK_DIR,subject)
-        _, task_files = load_tasks(tasks_dir)
-        task_ids = [f[:-5] for f in task_files]
-
+        tasks = load_tasks(subject)
+        task_ids = [t["task_id"] for t in tasks]
         return JsonResponse({'status': 'success', 'task_ids': task_ids})
     return JsonResponse({'status': 'error', 'task_ids': None})
 
@@ -371,8 +334,7 @@ def save_task(request):
         task = data.get('task', None)
         p5js = data.get('p5js', None)
         subject = data.get('subject', None)
-
-        tasks_dir = os.path.join(TASK_DIR,subject)
+        
 
         # if new p5js was generated, save it to a js file
         if p5js and "external_scripts" not in task:
@@ -381,12 +343,8 @@ def save_task(request):
                 file.write(p5js)
             task["external_scripts"] = [filename]
 
-        # find topic id and save task
-        task_id = task.get('task_id', 'untitled_task')
-        task_path = os.path.join(tasks_dir, f'{task_id}.json')
-
-        with open(task_path, 'w') as task_file:
-            json.dump(task, task_file, ensure_ascii=True, indent=4)
+        task["subject"] = subject
+        db.save_task(task)
 
         return JsonResponse({'status': 'success', 'message': 'Task saved successfully.'})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
