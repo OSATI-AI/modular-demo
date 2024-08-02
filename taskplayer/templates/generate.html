@@ -54,6 +54,7 @@
         let currentTemplate = null;
         let currentP5js = null;
         let currentImagePath = null; 
+        let currentBase64Image = null; 
         let currentSubject = "math"; 
 
         let id_to_subject = {
@@ -205,6 +206,16 @@
             const selectedIndex = dropdown.selectedIndex;
             setSubject(id_to_subject[selectedIndex]);
         }
+    
+        function convertToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+            
     </script>
 
 
@@ -680,7 +691,8 @@
                     p5js: currentP5js, 
                     image:currentImagePath,
                     language: getLanguage(), // Send selected language to the backend
-                    subject: getSubject()
+                    subject: getSubject(), 
+                    base64Image: currentBase64Image
                 })
             });
     
@@ -856,6 +868,7 @@
             resetUploadDialog();
         });
 
+
         document.getElementById('upload-btn').addEventListener('click', async () => {            
             // Get the file from the input
             const fileInput = document.getElementById('image-input');
@@ -890,6 +903,7 @@
                 if (response.ok) {
                     const data = await response.json();
                     currentImagePath = data.path;
+                    currentBase64Image = await convertToBase64(file);
                     // Show success message overlay
                     document.getElementById('success-message-overlay').style.display = 'flex';
 

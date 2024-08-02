@@ -80,7 +80,6 @@ EXAMPLE_P5JS = """
             new p5(s);
         };"""
 
-
 MODEL = "gpt-4o"#"anthropic/claude-3.5-sonnet"#"meta-llama/llama-3.1-405b-instruct"#"gpt-4o"#"openai/gpt-4o-mini"#""#"" 
 
 class GenerationManager:
@@ -149,7 +148,7 @@ class GenerationManager:
             "image": true, 
             "existing_p5js":null,
             "figure_details":null,
-            "figure_path": [Give here the relative url of the image]
+            "figure_path": {img_path}
             """
 
         else: 
@@ -498,17 +497,25 @@ class GenerationManager:
         print("\n\n",obj, "\n\n")
         return obj
 
-    def generate(self, prompt):
+    def generate(self, prompt, img_base64=None):
         prompt = self.persona() + "\n" + prompt
         start = time.time()
 
-        print("\n\n", prompt, "\n\n")
+        # print("\n\n", prompt, "\n\n")
+
+        if img_base64:
+            messages=[{"role": "user", "content": [
+            {"type": "text", "text": prompt},
+            {"type": "image_url", "image_url": {
+                "url": f"data:image/png;base64,{img_base64}"}
+            }
+        ]}]
+        else:
+            messages=[{"role": "user", "content": prompt}]
 
         response = self.client.chat.completions.create(
         model=self.model,
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
+        messages=messages, 
         functions=[
             {
                 "name": "create_json",
@@ -538,6 +545,8 @@ class GenerationManager:
         function_call={"name": "create_json"}
         )
         response_time = round(time.time()-start,3)
+
+        print(response)
 
         input_token = response.usage.prompt_tokens
         output_token = response.usage.completion_tokens

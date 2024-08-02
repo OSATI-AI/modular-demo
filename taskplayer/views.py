@@ -8,6 +8,8 @@ from .db_manager import DB
 from django.views.decorators.csrf import csrf_exempt
 import re 
 from django.core.files.storage import FileSystemStorage
+import base64
+from django.conf import settings
 
 template_dir = os.path.join(os.path.dirname(__file__), 'data/templates')
 js_dir =  os.path.join(os.path.dirname(__file__), 'data/scripts')
@@ -165,6 +167,10 @@ def get_example_task(template,subject="math"):
             return task 
     print("\n\n\n XXXXXXXX EXAMPLE TASK NOT FOUND XXXXXXXX \n\n\n")
     return None
+
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
 
 @csrf_exempt
 def generator_message(request):
