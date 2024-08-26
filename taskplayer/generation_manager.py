@@ -80,7 +80,7 @@ EXAMPLE_P5JS = """
             new p5(s);
         };"""
 
-MODEL = "gpt-4o"#"anthropic/claude-3.5-sonnet"#"meta-llama/llama-3.1-405b-instruct"#"gpt-4o"#"openai/gpt-4o-mini"#""#"" 
+MODEL = "gpt-4o-2024-08-06"#"anthropic/claude-3.5-sonnet"#"meta-llama/llama-3.1-405b-instruct"#"gpt-4o"#"openai/gpt-4o-mini"#""#"" 
 
 class GenerationManager:
     def __init__(self, api_key, model_name=MODEL, api_base='https://openrouter.ai/api/v1'):
@@ -109,12 +109,7 @@ class GenerationManager:
         answer and give the id of the task as value. 
         Example: 
         "existing_task": "404826057133261008"
-        If you found and existing task, add a field "message" to your answer as well and describe that 
-        found an existing task that could match the requirements, then ask if the user is happy with this
-        choice or if he/she wants to change someting. Do not mention the filename of the task, the user
-        will see the task in a preview window.If you found an existing task, you do not have to perform
-        any of the following steps, just give your answer in json format and include the "existing_task" 
-        and "message" fields. If you did not find a task that matches the requirements, set the value of "existing_task"
+        If you did not find a task that matches the requirements, set the value of "existing_task"
         to null and continue with STEP 2.
         IMPORTANT: If the given dialog shows, that you already found an existing task but the user wants to change 
         something, set "existing_task" to null and proceed as if you did not found an existing task.
@@ -265,6 +260,8 @@ class GenerationManager:
 
         Always try to implement the user request as accurately as possible, but always stick to
         format given by the template and the provided examples. 
+
+        If you do not create any p5js code, set "p5js" to null 
         """
 
         if img_path:
@@ -440,40 +437,38 @@ class GenerationManager:
             messages=[
                 {"role": "user", "content": prompt}
             ],
-            functions=[
-                {
-                    "name": "create_json",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "existing_task": {
-                                "type": "string"
-                            },
-                            "template": {
-                                "type": "string"
-                            },
-                            "figure":{
-                                "type":"boolean"
-                            },
-                            "existing_p5js":{
-                                "type": "string"
-                            },
-                            "figure_details":{
-                                "type":"string"
-                            },
-                            "figure_path":{
-                                "type":"string"
-                            },
-                            "message":{
-                                "type":"string"
-                            }
-
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {
+                "name": "create_json",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "existing_task": {
+                            "type": ["string", "null"]
                         },
-                        "required": ["existing_task", "template","figure", "existing_p5js","figure_details", "figure_path"]
+                        "template": {
+                            "type": ["string", "null"]
+                        },
+                        "figure":{
+                            "type": ["string", "null"]
+                        },
+                        "existing_p5js":{
+                            "type": ["string", "null"]
+                        },
+                        "figure_details":{
+                            "type": ["string", "null"]
+                        },
+                        "figure_path":{
+                            "type": ["string", "null"]
+                        },
+                    },
+                    "required": ["existing_task", "template","figure", "existing_p5js","figure_details", "figure_path"],
+                    "additionalProperties": False
                     }
                 }
-            ],
-            function_call={"name": "create_json"}
+            }
         )
 
         # response_time = round(time.time()-start,3)
@@ -481,8 +476,10 @@ class GenerationManager:
         # input_token = response.usage.prompt_tokens
         # output_token = response.usage.completion_tokens
 
+    
         print("\n\n\n------------------------\n")
         print("ANALYSIS")
+        print(response)
         # print("   - Time: ", response_time, "s")
         # print("   - Input Token: ", input_token)
         # print("   - Output Token: ", output_token)
@@ -490,8 +487,7 @@ class GenerationManager:
         print("\n------------------------\\n\n\n")
         # print(response)
         
-        obj_str = response.choices[0].message.function_call.arguments
-        #obj_str = response.choices[0].message.content
+        obj_str = response.choices[0].message.content
         obj = json.loads(obj_str)
         
         print("\n\n",obj, "\n\n")
@@ -499,9 +495,6 @@ class GenerationManager:
 
     def generate(self, prompt, img_base64=None):
         prompt = self.persona() + "\n" + prompt
-        start = time.time()
-
-        # print("\n\n", prompt, "\n\n")
 
         if img_base64:
             messages=[{"role": "user", "content": [
@@ -516,17 +509,19 @@ class GenerationManager:
         response = self.client.chat.completions.create(
         model=self.model,
         messages=messages, 
-        functions=[
-            {
+        response_format = {
+                "type": "json_schema",
+                "json_schema": {
                 "name": "create_json",
-                "parameters": {
+                #"strict": True,
+                "schema": {
                     "type": "object",
                     "properties": {
                         "message":{
                             "type":"string"
                         },  
                         "events": {
-                            "type": "object"
+                            "type": ["object", "null"],
                         },
                         "text": {
                             "type": "object"
@@ -535,76 +530,22 @@ class GenerationManager:
                             "type":"string"
                         },
                         "p5js":{
-                            "type":"string"
+                            "type":["string","null"]
                         }
                     },
-                    "required": ["message", "events","text", "script"]
+                    "required": ["message", "events","text", "script","p5js"],
+                    "additionalProperties": False
+                    }
                 }
             }
-        ],
-        function_call={"name": "create_json"}
         )
-        response_time = round(time.time()-start,3)
-
+        
+       
         print(response)
+        obj_str = response.choices[0].message.content
 
-        input_token = response.usage.prompt_tokens
-        output_token = response.usage.completion_tokens
-
-        print("\n\n\n------------------------\n")
-        print("GENERATE")
-        print("   - Time: ", response_time, "s")
-        print("   - Input Token: ", input_token)
-        print("   - Output Token: ", output_token)
-        print("\n------------------------\\n\n\n")
-    
-        obj_str = response.choices[0].message.function_call.arguments
-        #obj_str = response.choices[0].message.content
         obj = json.loads(obj_str)
         return obj
-
-
-    # def generate(self, prompt):
-    #     prompt = self.persona() + "\n" + prompt
-    #     prompt += """
-    #     First, only create the message to the user, the events that are sended and received by the task and the texts that are used.
-    #     Output a valid JSON file and use only the fields listed below:
-    #     message: "[YOUR MESSAGE]" [Give a short answer to the previous user message in which you explain what you 
-    #     just did and what changes you have added. But keep it short and simple and do not provide
-    #     technical details like code. Just stick to what happend to the task layout or behavior.
-    #     Always answer in the same language as the previous user message was written in.]
-    #     "events":[YOUR EVENTS OBJECT][Here you will creat a object that contains all outgoing and incoming events that are handled in the script]
-    #     "text":[YOUR TEXT OBJECT][Here you will specify all texts that are used in the script. Output a object that contains english and german translations for every text element. For text that contains "you", always use the "Du" in the german translation instead of "Sie"]"""
-
-
-    #     print("\n\n", prompt, "\n\n")
-
-    #     model_gen = "anthropic/claude-3.5-sonnet"
-
-    #     messages=[{"role": "user", "content": prompt}]
-
-    #     response = self.client.chat.completions.create(
-    #         model=model_gen,
-    #         response_format={ "type": "json_object" },
-    #         messages=messages
-    #     )
-
-    #     obj_str = response.choices[0].message.content
-    #     obj = json.loads(obj_str)
-    #     print("\n\n", obj, "\n\n")
-    #     messages.append({"role":"assistant", "content":obj_str})
-    #     messages.append({"role":"user", "content":"Now create the script. Provide only javascript code without any additional explanations and without ```javascript code tags"})
-
-    #     response = self.client.chat.completions.create(
-    #         model=model_gen,
-    #         messages=messages
-    #     )
-    #     script = response.choices[0].message.content
-    #     print("\n\n", script, "\n\n")
-
-    #     obj["script"] = script
-
-    #     return obj
     
     def generate_description(self, task, template, dialog):
         prompt = self.prompt_description(task,template, dialog)
@@ -613,30 +554,36 @@ class GenerationManager:
             messages=[
                 {"role": "user", "content": prompt}
             ],
-            functions=[
-                {
-                    "name": "create_json",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "title":{
-                                "type": "object"
+            response_format = {
+                "type": "json_schema",
+                #"strict": True,
+                "json_schema": {
+                "name": "create_json",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "title":{
+                            "type": "object"
                             },
-                            "description":{
-                                "type":"object"
-                            },
-                            "task_id":{
-                                "type":"string"
-                            }
+                        "description":{
+                            "type":"object"
                         },
-                        "required": ["title", "description","task_id"]
+                        "task_id":{
+                            "type":"string"
+                        }
+                    },
+                    "required": ["title", "description","task_id"],
+                    "additionalProperties": False
                     }
                 }
-            ],
-            function_call={"name": "create_json"}
+            }
         )
-        obj_str = response.choices[0].message.function_call.arguments
+        obj_str = response.choices[0].message.content
         obj = json.loads(obj_str)
+
+        print("\n\n\nDescription: ")
+        print(response)
+
         return obj
 
     def find_topic_id(self, task_description, topics_lookup):
@@ -646,26 +593,32 @@ class GenerationManager:
             messages=[
                 {"role": "user", "content": prompt}
             ],
-            functions=[
-                {
-                    "name": "create_json",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "topic_id": {
-                                "type": "integer"
-                            },
+            response_format = {
+                "type": "json_schema",
+                #"strict": True,
+                "json_schema": {
+                "name": "create_json",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "topic_id": {
+                            "type": "integer"
                         },
-                        "required": ["topic_id"]
+                    },
+                    "required": ["topic_id"],
+                    "additionalProperties": False
                     }
                 }
-            ],
-            function_call={"name": "create_json"}
+            }
         )
-        
-        obj_str = response.choices[0].message.function_call.arguments
+
+        print("\n\n\nTOPIC ID: ")
+        print(response)
+
+        obj_str = response.choices[0].message.content
         obj = json.loads(obj_str)
         return obj["topic_id"]
     
 # Create an instance of the conversation manager
 generation_manager = GenerationManager(api_key=OPENROUTER_API_KEY)
+

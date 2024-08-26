@@ -205,7 +205,7 @@ def generator_message(request):
         task_id = task_analysis["existing_task"]
         if task_id:
             task, template = read_task_and_template(task_id, subject, language)
-            message = task_analysis["message"]
+            message = "I found an existing Task that could match your requirements. Do you want to use this task or do you want to make additional changes?"
             if "external_scripts" in task:
                 p5js_code = ""
                 for script_file in task["external_scripts"]:
