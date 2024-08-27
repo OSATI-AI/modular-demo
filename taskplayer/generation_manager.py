@@ -9,76 +9,73 @@ import time
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
 
 EXAMPLE_P5JS = """
-        /* 
-        *** Function Description Start ***
-        Description: 
-        The plot_graph function uses p5.js to plot any arbitrary mathematical function. It takes in the x and y range in which the function should be displayed and a callback function to determine the function term for the graph.
+    function drawGrid(sketch, xRange, yRange) {
+        sketch.stroke(200); // Light grey color for grid lines
+        sketch.strokeWeight(1);
 
-        How to use:
-        1. Define a mathematical function as a callback.
-        2. Call the plot_graph function with the container ID, the callback function, and the x and y ranges.
-
-        Example:
-        function quadraticFunction(x) {
-            return x * x;
+        // Draw vertical grid lines
+        for (let x = 0; x < sketch.width; x += sketch.width / (xRange[1] - xRange[0])) {
+            sketch.line(x, 0, x, sketch.height);
         }
 
-        plot_graph('container', quadraticFunction, [-10, 10], [-10, 100]);
-        *** Function Description End ***
-        */
-        function drawGrid(sketch, xRange, yRange) {
-            sketch.stroke(200); // Light grey color for grid lines
-            sketch.strokeWeight(1);
-
-            // Draw vertical grid lines
-            for (let x = 0; x < sketch.width; x += sketch.width / (xRange[1] - xRange[0])) {
-                sketch.line(x, 0, x, sketch.height);
-            }
-
-            // Draw horizontal grid lines
-            for (let y = 0; y < sketch.height; y += sketch.height / (yRange[1] - yRange[0])) {
-                sketch.line(0, y, sketch.width, y);
-            }
+        // Draw horizontal grid lines
+        for (let y = 0; y < sketch.height; y += sketch.height / (yRange[1] - yRange[0])) {
+            sketch.line(0, y, sketch.width, y);
         }
+    }
 
-        function drawAxes(sketch) {
-            sketch.stroke(0); // Black color for axes
-            sketch.strokeWeight(3);
-            // Draw X axis
-            sketch.line(0, sketch.height / 2, sketch.width, sketch.height / 2);
-            // Draw Y axis
-            sketch.line(sketch.width / 2, 0, sketch.width / 2, sketch.height);
+    function drawAxes(sketch) {
+        sketch.stroke(0); // Black color for axes
+        sketch.strokeWeight(3);
+        // Draw X axis
+        sketch.line(0, sketch.height / 2, sketch.width, sketch.height / 2);
+        // Draw Y axis
+        sketch.line(sketch.width / 2, 0, sketch.width / 2, sketch.height);
+    }
+
+    function drawFunction(sketch, func, xRange, yRange) {
+        sketch.stroke(255, 0, 0); // Red color for the function line
+        sketch.strokeWeight(2);
+        sketch.noFill();
+        sketch.beginShape();
+        for (let x = xRange[0]; x <= xRange[1]; x += 0.1) {
+            let y = func(x);
+            let canvasX = sketch.map(x, xRange[0], xRange[1], 0, sketch.width);
+            let canvasY = sketch.map(y, yRange[0], yRange[1], sketch.height, 0);
+            sketch.vertex(canvasX, canvasY);
         }
+        sketch.endShape();
+    }
 
-        function drawFunction(sketch, func, xRange, yRange) {
-            sketch.stroke(255, 0, 0); // Red color for the function line
-            sketch.strokeWeight(2);
-            sketch.noFill();
-            sketch.beginShape();
-            for (let x = xRange[0]; x <= xRange[1]; x += 0.1) {
-                let y = func(x);
-                let canvasX = sketch.map(x, xRange[0], xRange[1], 0, sketch.width);
-                let canvasY = sketch.map(y, yRange[0], yRange[1], sketch.height, 0);
-                sketch.vertex(canvasX, canvasY);
-            }
-            sketch.endShape();
-        }
-
-        function plot_graph(container, func, xRange, yRange){
-            document.getElementById(container).innerHTML = ""
-            var s = function( sketch ) {
-                sketch.setup = function() {
-                    canvas = sketch.createCanvas(400, 400);
-                    canvas.parent(container);
-                    sketch.background(255);
-                    drawGrid(sketch, xRange, yRange);
-                    drawAxes(sketch);
-                    drawFunction(sketch, func, xRange, yRange);
-                };
+    function plot_graph(container, func, xRange, yRange){
+        document.getElementById(container).innerHTML = ""
+        var s = function( sketch ) {
+            sketch.setup = function() {
+                canvas = sketch.createCanvas(400, 400);
+                canvas.parent(container);
+                sketch.background(255);
+                drawGrid(sketch, xRange, yRange);
+                drawAxes(sketch);
+                drawFunction(sketch, func, xRange, yRange);
             };
+        };
 
-            new p5(s);
-        };"""
+        new p5(s);
+    };"""
+EXAMPLE_DESCRIPTION = """
+    Description: 
+    The plot_graph function uses p5.js to plot any arbitrary mathematical function. It takes in the x and y range in which the function should be displayed and a callback function to determine the function term for the graph.
+
+    How to use:
+    1. Define a mathematical function as a callback.
+    2. Call the plot_graph function with the container ID, the callback function, and the x and y ranges.
+
+    Example:
+    function quadraticFunction(x) {
+        return x * x;
+    }
+    plot_graph('container', quadraticFunction, [-10, 10], [-10, 100]);
+    """
 
 MODEL = "gpt-4o-2024-08-06"#"anthropic/claude-3.5-sonnet"#"meta-llama/llama-3.1-405b-instruct"#"gpt-4o"#"openai/gpt-4o-mini"#""#"" 
 
@@ -89,11 +86,371 @@ class GenerationManager:
             api_key=api_key)
         self.model = model_name
 
-    def persona(self):
-        return """You are a helpfull AI assistant, designed to help teachers to design learning tasks
+    def intro(self, user_message, dialog):
+        return f"""You are a helpfull AI assistant, designed to help teachers to design learning tasks
         for their students. Your job is to listen to the description and requirements of the teacher
-        and create a task according to certain design rules."""
+        and create a task according to certain design rules. You will your previous dialog with the user and 
+        have to perform the described actions according to the content of the dialog.
         
+        PREVIOUS_MESSAGE: {user_message}
+        FULL_DIALOG: {dialog}
+        """
+
+    def check_existing_tasks(self, user_message, dialog, existing_tasks):
+        # Build Prompt
+        prompt = f"""
+            Check the following list of task descriptions and decide, if any of those tasks matches all of the 
+            requirements of the task, described by the user. If you found a task that implements all features
+            exactly as the user asked for, set "existing_task" to the id of the task you have selected.
+            If no task matches the requirements, set this field to null.
+            The task has to completely match the description of the user, including the type and layout of the task.
+            If the user asks for a addition task as a multiple choice task and there exists a addition task with a text-input
+            field, this is not a match since the layout of the task is different. 
+            LIST OF EXISTING TASKS:
+            {existing_tasks}
+        """
+        prompt = self.intro(user_message, dialog)+"\n"+prompt
+
+        # LLM call 
+        start = time.time()
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {
+                "name": "check_existing_tasks",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "existing_task": {
+                            "type": ["string", "null"]
+                        },
+                    },
+                    "required": ["existing_task"],
+                    "additionalProperties": False
+                    }
+                }
+            }
+        )
+        response_time = round(time.time()-start,2)
+        input_tokens = response.usage.prompt_tokens
+        output_tokens = response.usage.completion_tokens
+        obj_str = response.choices[0].message.content
+        obj = json.loads(obj_str)
+        
+        print("\n\n\n### CHECK EXISTING TASKS ###")
+        print("  - Time: ", response_time)
+        print("  - Input Tokens: ", input_tokens)
+        print("  - Output Tokens: ", output_tokens)
+        print("\n",obj)
+        print("\n#################################\n\n\n")
+
+        return obj
+
+    def choose_template(self, user_message, dialog, templates):
+        # Build Prompt
+        prompt = f"""
+            Select a template for this type of task that matches the requirements of the user.
+            You are only allowed to pick exactly one template out of the provided lists of templates and their description.
+            Add a field "template" to your answer and give the name of the template as value. 
+            LIST OF TEMPLATES:
+            {templates}
+        """
+        prompt = self.intro(user_message, dialog)+"\n"+prompt
+
+        # LLM call 
+        start = time.time()
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {
+                "name": "choose_template",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "template": {
+                            "type": ["string"]
+                        },
+                    },
+                    "required": ["template"],
+                    "additionalProperties": False
+                    }
+                }
+            }
+        )
+        response_time = round(time.time()-start,2)
+        input_tokens = response.usage.prompt_tokens
+        output_tokens = response.usage.completion_tokens
+        obj_str = response.choices[0].message.content
+        obj = json.loads(obj_str)
+        
+        print("\n\n\n### CHOOSE TEMPLATE ###")
+        print("  - Time: ", response_time)
+        print("  - Input Tokens: ", input_tokens)
+        print("  - Output Tokens: ", output_tokens)
+        print("\n",obj)
+        print("\n#################################\n\n\n")
+        
+        return obj
+
+    def check_p5js(self, user_message, dialog, p5js_functions):
+        prompt = f"""
+            Analyse if the task requires to display a figure. Add a field "figure" to your answer and set its value
+            to true if a figure is required and to false if no figure is required.
+
+            You are only allowed to use p5js for creating figures.
+            Below, there is a list of existing p5js functions with their according descriptions. Check each of them
+            and decide if any of them provides a figure that matches the requirements. Add a field "existing_p5js"
+            to your answers. If you found an existing function that you will use, give its filename as value, if not
+            give null as value.
+
+            Add a field "figure_details" to your answer. If there was an existing p5js function or there is no figure at all set the value of 
+            the field to null. If no existing function matches the requirements, give a 
+            detailed description of how the function should be designed (no code yet) as value for the field. If you describe
+            how a new function should look like, I would like to create functions that are as general as possible
+            in order to reuse them later. So e.g. if the user wants a figure of a linear function, instead of describing
+            a p5js function that only can render linear functions, instead try to describe a function that can plot
+            any kind of mathematical function. 
+
+            LIST OF EXISTING P5JS FUNCTIONS:
+            {p5js_functions}            
+        """
+        prompt = self.intro(user_message, dialog)+"\n"+prompt
+
+        # LLM call 
+        start = time.time()
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {
+                "name": "check_figure_code",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "figure":{
+                            "type": "boolean"
+                        },
+                        "existing_p5js":{
+                            "type": ["string", "null"]
+                        },
+                        "figure_details":{
+                            "type": ["string", "null"]
+                        },
+                    },
+                    "required": ["figure", "existing_p5js", "figure_details"],
+                    "additionalProperties": False
+                    }
+                }
+            }
+        )
+        response_time = round(time.time()-start,2)
+        input_tokens = response.usage.prompt_tokens
+        output_tokens = response.usage.completion_tokens
+        obj_str = response.choices[0].message.content
+        obj = json.loads(obj_str)
+        
+        print("\n\n\n### CHECK P5JS ###")
+        print("  - Time: ", response_time)
+        print("  - Input Tokens: ", input_tokens)
+        print("  - Output Tokens: ", output_tokens)
+        print("\n",obj)
+        print("\n#################################\n\n\n")
+        
+        return obj
+    
+    def generate_p5js(self, function_description):
+        prompt = f"""
+        Create p5js code according to render the following figure: 
+        {function_description}
+
+        I would like to create functions that are as general as possible
+        in order to reuse them later. So e.g. if the user wants a figure of a linear function, instead of describing
+        a p5js function that only can render linear functions, instead try to describe a function that can plot
+        any kind of mathematical function. Also make the p5js code as independent from the current task as possible.
+        You can create multiple functions to make the code more structured but make sure, that there is only one
+        function that will be called from the task code. You can assume that the p5js function will later be 
+        available to the task code, but not vice versa, so you are not allowed to use any variables or functions
+        from the task code inside your p5js code.  
+
+        When creating p5js code, stick to the following style, where a new p5js object is created 
+        inside the function and a parent element is given to set as the container p5js should render the figure into.
+        Example Code: 
+        {EXAMPLE_P5JS}
+
+        Example Documentation: 
+        {EXAMPLE_DESCRIPTION}
+        
+        Please also provide a documentation as shown above and add it to the field "description". 
+        If your code contains multiple functions you only should provide a documentation for the main function that can be 
+        called from other scripts. Provide a description of what the fuctions does as well as a short example code on how 
+        to use it.
+        """
+
+        # LLM call 
+        start = time.time()
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {
+                "name": "create_p5js",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "p5js_code":{
+                            "type": "string"
+                        },
+                        "description":{
+                            "type": "string"
+                        },
+                    },
+                    "required": ["p5js_code", "description"],
+                    "additionalProperties": False
+                    }
+                }
+            }
+        )
+        response_time = round(time.time()-start,2)
+        input_tokens = response.usage.prompt_tokens
+        output_tokens = response.usage.completion_tokens
+        obj_str = response.choices[0].message.content
+        obj = json.loads(obj_str)
+        
+        print("\n\n\n### CREATE P5JS ###")
+        print("  - Time: ", response_time)
+        print("  - Input Tokens: ", input_tokens)
+        print("  - Output Tokens: ", output_tokens)
+        print("\n",obj)
+        print("\n#################################\n\n\n")
+        
+        return obj
+
+    def generate_new(self, user_message, dialog, template, example_task, subject, p5js_description = None):
+        script = example_task["script"]
+        text = example_task["text"]
+        events = example_task["events"]
+
+        prompt = f""" 
+        SCHOOL SUBJECT: {subject}
+
+        You will create a object that contains certain descriptive fields as well as javascript code that controlls the elements of the task.
+        The object also defines and handles certain events that manages communication with the application
+        that renders the task. A task is always connected to a certain template. The template defines 
+        the overall layout of the task and creates container elements. The task is only allow to work and
+        generate things inside these elements. Below, you can find the code of the template that you have to use
+        an an EXAMPLE_TASK to show you how to use the framework. Always stick to this framework and only use the fields as shown in the examples. 
+
+        TEMPLATE:
+        {template}
+        
+        EXAMPLE_TASK:
+        "events": {events}
+        "text":{text}
+        "script":"{script}"
+
+        Text elements can be referenced within the script by using double curly brackets:
+        Example: answerLabel.innerHTML = "<b>{{name}}: </b>";
+        Every text element has to be declared in the "text" field and need a unique identifier to reference it in the javascript code.
+        So even if we have a list of text elements that should be displayed somewhere, every text element need an id and has to be
+        referenced with double curly brackets. In general, you can always just refer the name of the variable without the language since 
+        the the correct language will be picked later by a different part of the code. However when a text should always be in a certain language,
+        e.g. in tasks where the student has to translate something, then you have to explicitly reference the text in this language
+        by using VARIABLE.LANGUAGE inside the curly brackets e.g. {{name.english}}.
+        
+        When the subject is "English" this means, it is english as a foreign language. So if the student
+        should translate something or some parts of the exercise are required to be in english do not provide a german translation for these texts but
+        rather use the english text for both german: and english: to ensure that the correct english text is displayed, no matter what language
+        the task is rendered in.
+
+        You are not supposed to handle feedback to the user. The only thing you have to take care is to handle the evaluation
+        event and return an object in the format: 
+        userInput: [INPUT OF THE USER]
+        result: [CORRECT ANSER]
+        isCorrect: [TRUE or FALSE]
+        Please note: The evaluation function ALWAYS have to return a single object with those three parameters. Even if the task
+        is e.g. a multiple choice task with several correct answers, decide based on the logic of the task and the description of the user
+        when a task is either correct or not correct. There is no way to describe partially correct answers or lists of booleans.
+        You have to decide and pick one boolean to set as value. 
+
+        Whenever you generate random numbers in the javascript code, make sure that the variables 
+        are really saved as numbers. Use functions like parseFloat or parseInt to ensure that.
+
+        Try to implement every task in a way, that we can have multiple exercises. Fore example by
+        randomly generating certain numbers or other aspects of the function. When doin this, 
+        always make sure to handle the refresh event correctly and generate new random details for the
+        task. Also make sure to update the correct result to ensure that the evaluate event is handled correctly.
+
+        It is very important that you handle the getTaskDetails event and return a very detailed description of every information connected
+        to the task. This includes all static information that do not change when refreshing the task as well as dynamic information like
+        the random generated numbers, or the correct solution. This details are later used to explain an AI tutor the whole situation as exact as possible.
+        """
+
+        if p5js_description:
+            prompt += f"""
+                        The task requires to display a figure. You have to use an existing, external function for this.
+                        You can assume that the function exists in the current scope. Call it from your script according to
+                        the the following code documentation:
+                        {p5js_description} 
+                    """
+
+        prompt = self.intro(user_message, dialog) + prompt
+
+        start = time.time()
+        response = self.client.chat.completions.create(
+        model=self.model,
+        messages=[{"role": "user", "content": prompt}], 
+        response_format = {
+                "type": "json_schema",
+                "json_schema": {
+                "name": "generate_task",
+                #"strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "events": {
+                            "type": ["object", "null"],
+                        },
+                        "text": {
+                            "type": "object"
+                        },
+                        "script":{
+                            "type":"string"
+                        },
+                    },
+                    "required": ["events","text", "script"],
+                    "additionalProperties": False
+                    }
+                }
+            }
+        )
+
+        response_time = round(time.time()-start,2)
+        input_tokens = response.usage.prompt_tokens
+        output_tokens = response.usage.completion_tokens
+        obj_str = response.choices[0].message.content
+        obj = json.loads(obj_str)
+        
+        print("\n\n\n### CREATE TASK ###")
+        print("  - Time: ", response_time)
+        print("  - Input Tokens: ", input_tokens)
+        print("  - Output Tokens: ", output_tokens)
+        print("\n",obj)
+        print("\n#################################\n\n\n")
+        
+        return obj
+
+
+
     def prompt_analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions, img_path, subject):
         prompt =  f""" You will receive the user's message and the complete previous dialog which includes 
         the description of the learning task that should be created. Work through the following steps and give your answer in json format.

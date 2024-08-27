@@ -164,13 +164,24 @@ def get_example_task(template,subject="math"):
     example_id = template["example_task"]
     for task in tasks:
         if task["task_id"] == example_id:
-            return task 
+            if "external_scripts" in task:
+                task.pop('external_scripts')
+            task.pop('topic_id')
+            return task      
     print("\n\n\n XXXXXXXX EXAMPLE TASK NOT FOUND XXXXXXXX \n\n\n")
     return None
 
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
+
+def get_message_existing_task(language):
+    if language == "english":
+        return """I found an existing task which is similar to your description. Does this task match your requirements
+        or do you want to make changes?"""
+    elif language == "german":
+        return """Ich habe eine bestehende Aufgabe gefunden, die Ihrer Beschreibung ähnlich ist. Entspricht diese Aufgabe Ihren Anforderungen
+        oder möchten Sie Änderungen vornehmen?"""
 
 @csrf_exempt
 def generator_message(request):
@@ -185,12 +196,6 @@ def generator_message(request):
         img_path = data.get('image', None)
         subject = data.get('subject', None)
 
-        bool_generate_p5js = False
-        bool_update = False
-        p5js_code = None
-        p5js_file = None
-
-        
         # GET EXISTING TASK DESCRIPTIONS
         existing_tasks = load_task_description(subject)
 
@@ -199,92 +204,154 @@ def generator_message(request):
 
         # GET EXTERNAL JS FUNCTIONS
         p5js_functions = get_js_descriptions(js_dir)
-        
-        # TEST
-        task_analysis = generation_manager.analyse(user_message,dialog, existing_tasks, templates, p5js_functions, img_path, subject)
-        task_id = task_analysis["existing_task"]
+
+        p5js_code = None
+        message = "Default Message"
+        task = None
+
+        # Check existing tasks
+        print("\n[Checking existing tasks]")
+        response_existing_tasks = generation_manager.check_existing_tasks(user_message, dialog, existing_tasks)
+        task_id = response_existing_tasks['existing_task']
         if task_id:
-            task, template = read_task_and_template(task_id, subject, language)
-            message = "I found an existing Task that could match your requirements. Do you want to use this task or do you want to make additional changes?"
+            # existing task found --> Open the task and send a generic message
+            message = get_message_existing_task(language)
+            task, template = read_task_and_template(task_id, subject, language) 
             if "external_scripts" in task:
                 p5js_code = ""
                 for script_file in task["external_scripts"]:
                     p5js_code += get_js_code(js_dir, script_file)
 
         else:
-            template_id = task_analysis["template"]
+            # Choose template
+            print("\n[Choosing Template...]")
+            response_template = generation_manager.choose_template(user_message, dialog, templates)
+            template_id = response_template["template"]
             template = read_template(template_id) 
             example_task = get_example_task(template)
-            if example_task != None:
-                if "external_scripts" in example_task:
-                    example_task.pop('external_scripts')
-                example_task.pop('topic_id')
             
-            # base generation (no figure, no update)
-            prompt = generation_manager.prompt_generate(user_message,dialog,json.dumps(template),example_task, img_path, subject)
-
-            # Optional Figure Prompt
-            if task_analysis["figure"] and task_analysis["figure_path"] is None:
-                p5js_file = task_analysis["existing_p5js"]
+            # Check if figure is required
+            p5js_description = None
+            print("\n[Checking Figure Code]")
+            response_p5js = generation_manager.check_p5js(user_message, dialog, p5js_functions)
+            if response_p5js["figure"] == True:
+                # figure required 
+                print("\n[Figure required]")
+                p5js_file = response_p5js["existing_p5js"] 
                 if p5js_file:
-                    # Use existing p5js function
-                    function_description = p5js_functions[p5js_file]
+                    # load existing p5js code
+                    print("\n[Found existing p5js Code]")
+                    p5js_description = p5js_functions[p5js_file]
                     p5js_code = get_js_code(js_dir, p5js_file)
-                    prompt += generation_manager.prompt_existing_p5js(function_description)
                 else:
-                    # Generate new p5js function
-                    figure_details = task_analysis["figure_details"]
-                    prompt += generation_manager.prompt_new_p5js(figure_details)
-                    bool_generate_p5js = True
-            
-            # Optional update existing task
-            if current_task:
-                prompt += generation_manager.prompt_generate_update(current_task, current_p5js)
-                bool_update = True
+                    # create new p5js code
+                    print("\n[Creating new p5js Code...]")
+                    response_p5js_code = generation_manager.generate_p5js(response_p5js["figure_details"])
+                    p5js_description = response_p5js_code["description"]
+                    p5js_code = response_p5js_code["p5js_code"]
 
-            prompt += generation_manager.prompt_output_format(bool_update, bool_generate_p5js)
+            # Generate Task
+            print("\n[Create Task...]")
+            response_generate = generation_manager.generate_new(user_message, dialog, template, example_task, subject, p5js_description)
             
-            response = generation_manager.generate(prompt)
-   
-            message = response["message"]
-
-            if bool_update:
-                if response["script"] is None:
-                    script = current_task["script"]
-                else:
-                    script = response["script"]
-                    
-                if response["events"]  is None:
-                    events = current_task["events"]
-                else:
-                    events = response["events"]
-                if response["text"]  is None:
-                    text = current_task["text"]
-                else:
-                    text = response["text"]
-            else:
-                script = response["script"]
-                events = response["events"]
-                text = response["text"]
-            script.replace("\\\\\\\\", "\\\\")
-            script.replace("\\\\\\", "\\\\")
+            script = response_generate["script"]
+            events = response_generate["events"]
+            text = response_generate["text"]
             task = {}
             task["template_id"] = template_id[:-5]
             task["events"] = events
             task["text"] = text
             task["script"] = script
             task["topic_id"] = 1
+            
+        
+        
+        # TEST
+        # task_analysis = generation_manager.analyse(user_message,dialog, existing_tasks, templates, p5js_functions, img_path, subject)
+        # task_id = task_analysis["existing_task"]
+        # if task_id:
+        #     task, template = read_task_and_template(task_id, subject, language)
+        #     message = "I found an existing Task that could match your requirements. Do you want to use this task or do you want to make additional changes?"
+        #     if "external_scripts" in task:
+        #         p5js_code = ""
+        #         for script_file in task["external_scripts"]:
+        #             p5js_code += get_js_code(js_dir, script_file)
 
-            if "p5js" in response:
-                p5js_code = response["p5js"]
-                if p5js_code is None:
-                    p5js_code = current_p5js
-                else:
-                    p5js_code = p5js_code
+        # else:
+        #     template_id = task_analysis["template"]
+        #     template = read_template(template_id) 
+        #     example_task = get_example_task(template)
+        #     if example_task != None:
+        #         if "external_scripts" in example_task:
+        #             example_task.pop('external_scripts')
+        #         example_task.pop('topic_id')
+            
+        #     # base generation (no figure, no update)
+        #     prompt = generation_manager.prompt_generate(user_message,dialog,json.dumps(template),example_task, img_path, subject)
 
-            if p5js_file:
-                task["external_scripts"] = [p5js_file]
-                p5js_code = get_js_code(js_dir, p5js_file)
+        #     # Optional Figure Prompt
+        #     if task_analysis["figure"] and task_analysis["figure_path"] is None:
+        #         p5js_file = task_analysis["existing_p5js"]
+        #         if p5js_file:
+        #             # Use existing p5js function
+        #             function_description = p5js_functions[p5js_file]
+        #             p5js_code = get_js_code(js_dir, p5js_file)
+        #             prompt += generation_manager.prompt_existing_p5js(function_description)
+        #         else:
+        #             # Generate new p5js function
+        #             figure_details = task_analysis["figure_details"]
+        #             prompt += generation_manager.prompt_new_p5js(figure_details)
+        #             bool_generate_p5js = True
+            
+        #     # Optional update existing task
+        #     if current_task:
+        #         prompt += generation_manager.prompt_generate_update(current_task, current_p5js)
+        #         bool_update = True
+
+        #     prompt += generation_manager.prompt_output_format(bool_update, bool_generate_p5js)
+            
+        #     response = generation_manager.generate(prompt)
+   
+        #     message = response["message"]
+
+        #     if bool_update:
+        #         if response["script"] is None:
+        #             script = current_task["script"]
+        #         else:
+        #             script = response["script"]
+                    
+        #         if response["events"]  is None:
+        #             events = current_task["events"]
+        #         else:
+        #             events = response["events"]
+        #         if response["text"]  is None:
+        #             text = current_task["text"]
+        #         else:
+        #             text = response["text"]
+        #     else:
+        #         script = response["script"]
+        #         events = response["events"]
+        #         text = response["text"]
+        #     script.replace("\\\\\\\\", "\\\\")
+        #     script.replace("\\\\\\", "\\\\")
+        #     task = {}
+        #     task["template_id"] = template_id[:-5]
+        #     task["events"] = events
+        #     task["text"] = text
+        #     task["script"] = script
+        #     task["topic_id"] = 1
+        #     if "p5js" in response:
+        #         p5js_code = response["p5js"]
+        #         if p5js_code is None:
+        #             p5js_code = current_p5js
+        #         else:
+        #             p5js_code = p5js_code
+        #     if p5js_file:
+        #         task["external_scripts"] = [p5js_file]
+        #         p5js_code = get_js_code(js_dir, p5js_file)
+
+
+
 
         response = {
             "message":message, 
