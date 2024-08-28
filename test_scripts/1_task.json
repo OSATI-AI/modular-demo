@@ -1,0 +1,21 @@
+{
+  "task_id": "task_add_two_numbers",
+  "template_id": "template_question_math_input",
+  "title": {
+    "english": "Test Task",
+    "german": "Test Task"
+  },
+  "description": {
+    "english": "In this task, you need to add two numbers together. Both numbers will be between 1 and 9.",
+    "german": "In dieser Aufgabe musst du zwei Zahlen addieren. Beide Zahlen liegen zwischen 1 und 9."
+  },
+  "text": {
+    "text_question": {
+      "english": "What is the sum of the following numbers?",
+      "german": "Was ist die Summe der folgenden Zahlen?"
+    }
+  },
+  "subject":"math",
+  "topic_id":1,
+  "script": "// Global variables to store task-specific details\nvar num1, num2, correctAnswer;\n\nfunction create_exercise() {\n    // Generate two random numbers between 1 and 9\n    num1 = Math.floor(Math.random() * 9) + 1;\n    num2 = Math.floor(Math.random() * 9) + 1;\n    \n    // Calculate the correct answer\n    correctAnswer = num1 + num2;\n    \n    // Define the question text and formula\n    var questionText = '{{text_question}}';\n    var formula = num1 + ' + ' + num2 + ' = \\\\placeholder[result]{}';\n    \n    // Define the answers object\n    var answers = {\n        'result': correctAnswer.toString()\n    };\n    \n    // Call the createLayout function with the generated parameters\n    var args = {\n        question_text: questionText,\n        formula: formula,\n        answers: answers\n    };\n    playerApi.callTemplateScript('createLayout', args);\n}\n\nfunction get_task_details() {\n    // Return a single string describing the current task\n    return `The current task requires adding the numbers ${num1} and ${num2}, with the correct answer being ${correctAnswer}.`;\n}\n\nplayerApi.receiveEvent('refresh', function() {\n    create_exercise();\n  });\n\n  playerApi.receiveEvent('get_task_details', function() {\n    const taskDetails = playerApi.getTaskDetails();\n    const dynamicDetails = get_task_details(); \n    playerApi.sendEvent('task_details', {\n        staticInfo: taskDetails.description,\n        dynamicDetails: dynamicDetails\n      });\n}); \ncreate_exercise();"
+}

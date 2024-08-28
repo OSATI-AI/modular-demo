@@ -6,7 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Player Demo</title>
     <link rel="stylesheet" href="{% static 'styles/global.css' %}">
-    <script defer src="//unpkg.com/mathlive"></script>
+    <script src="https://unpkg.com/mathlive"></script>
+    <script>
+      window.addEventListener('DOMContentLoaded', 
+        () => MathLive.renderMathInDocument()
+      );
+    </script>
+    <script type="module">
+        import { ComputeEngine } from 
+          'https://unpkg.com/@cortex-js/compute-engine?module';
+    </script>
     <script async src="{% static 'chat-widget.js' %}"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.min.js"></script>
@@ -254,7 +263,7 @@
             const evaluationResult = document.getElementById('evaluation-result');
             const resultDetail = JSON.stringify(event.detail);
             const user_answer = JSON.stringify(event.detail.userInput);
-            if (event.detail.isCorrect) {
+            if (event.detail.result == true) {
                 displaySuccessFeedback();
                 refresh_task()
             } else {

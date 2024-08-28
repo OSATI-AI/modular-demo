@@ -48,3 +48,8 @@ class DB():
         tasks = self.get_all_tasks()
         return [t for t in tasks if t["subject"] == subject]
 
+
+db = DB()
+with open("1_task.json", 'r') as file:
+    task = json.load(file)
+db.save_task(task)

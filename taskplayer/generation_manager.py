@@ -335,73 +335,53 @@ class GenerationManager:
         
         return obj
 
-    def generate_new(self, user_message, dialog, template, example_task, subject, p5js_description = None):
-        script = example_task["script"]
-        text = example_task["text"]
-        events = example_task["events"]
+    def generate_new(self, user_message, dialog, template_documentation, subject, p5js_description = None):
 
         prompt = f""" 
         SCHOOL SUBJECT: {subject}
 
-        You will create a object that contains certain descriptive fields as well as javascript code that controlls the elements of the task.
-        The object also defines and handles certain events that manages communication with the application
-        that renders the task. A task is always connected to a certain template. The template defines 
-        the overall layout of the task and creates container elements. The task is only allow to work and
-        generate things inside these elements. Below, you can find the code of the template that you have to use
-        an an EXAMPLE_TASK to show you how to use the framework. Always stick to this framework and only use the fields as shown in the examples. 
+        In "script", create a javascript function "create_exercise". This function should 
+        generate parameters that contain the content and correct answer of the current task.
+        These parameters are then passed to a function "createLayout" which will create and
+        display the task to the student. 
 
-        TEMPLATE:
-        {template}
+        The function should generate new random parameters on every call, such that the 
+        learning task can be repeated with different content several times. Read out of 
+        the users description if and how these new values should be generated.   
+        See the function documentation below to understand how the generateLayout function
+        has to be called an what parameters are required. The function must not be called 
+        with a normal function call but in the following way: 
+
+        playerApi.callTemplateScript('createLayout', args);
         
-        EXAMPLE_TASK:
-        "events": {events}
-        "text":{text}
-        "script":"{script}"
+        Where args is a object containing the function parameters as key value pairs. 
 
-        Text elements can be referenced within the script by using double curly brackets:
-        Example: answerLabel.innerHTML = "<b>{{name}}: </b>";
-        Every text element has to be declared in the "text" field and need a unique identifier to reference it in the javascript code.
-        So even if we have a list of text elements that should be displayed somewhere, every text element need an id and has to be
-        referenced with double curly brackets. In general, you can always just refer the name of the variable without the language since 
-        the the correct language will be picked later by a different part of the code. However when a text should always be in a certain language,
-        e.g. in tasks where the student has to translate something, then you have to explicitly reference the text in this language
-        by using VARIABLE.LANGUAGE inside the curly brackets e.g. {{name.english}}.
+        All texts that appears in the parameters have to be  be referenced within the script
+        by using double curly brackets like {{text_question}}. Every text element has to be 
+        declared in the "text" field and need a unique identifier to reference it in the 
+        javascript code. Add a english and german translation.
         
-        When the subject is "English" this means, it is english as a foreign language. So if the student
-        should translate something or some parts of the exercise are required to be in english do not provide a german translation for these texts but
-        rather use the english text for both german: and english: to ensure that the correct english text is displayed, no matter what language
-        the task is rendered in.
+        Also create a function "get_task_details" which will return a single string which describes
+        the current task. This description should only contain the information that are relevant
+        for the current task. So in general it should contain all the randomly generated elements 
+        as well as the current correct answer. Formulate the string as a full sentence as it 
+        should be used to give the current context to a LLM which can't see the task and only 
+        can work with the information provided by this function.
 
-        You are not supposed to handle feedback to the user. The only thing you have to take care is to handle the evaluation
-        event and return an object in the format: 
-        userInput: [INPUT OF THE USER]
-        result: [CORRECT ANSER]
-        isCorrect: [TRUE or FALSE]
-        Please note: The evaluation function ALWAYS have to return a single object with those three parameters. Even if the task
-        is e.g. a multiple choice task with several correct answers, decide based on the logic of the task and the description of the user
-        when a task is either correct or not correct. There is no way to describe partially correct answers or lists of booleans.
-        You have to decide and pick one boolean to set as value. 
+        All elements that are generated in "create_exercise" and returned in "get_task_details"
+        should be declared globally to be available in both functions.
 
-        Whenever you generate random numbers in the javascript code, make sure that the variables 
-        are really saved as numbers. Use functions like parseFloat or parseInt to ensure that.
-
-        Try to implement every task in a way, that we can have multiple exercises. Fore example by
-        randomly generating certain numbers or other aspects of the function. When doin this, 
-        always make sure to handle the refresh event correctly and generate new random details for the
-        task. Also make sure to update the correct result to ensure that the evaluate event is handled correctly.
-
-        It is very important that you handle the getTaskDetails event and return a very detailed description of every information connected
-        to the task. This includes all static information that do not change when refreshing the task as well as dynamic information like
-        the random generated numbers, or the correct solution. This details are later used to explain an AI tutor the whole situation as exact as possible.
+        FUNCTION DOCUMENTATION:
+        {template_documentation}
         """
 
         if p5js_description:
             prompt += f"""
-                        The task requires to display a figure. You have to use an existing, external function for this.
-                        You can assume that the function exists in the current scope. Call it from your script according to
-                        the the following code documentation:
-                        {p5js_description} 
-                    """
+                The task requires to display a figure. You have to use an existing, external function for this.
+                You can assume that the function exists in the current scope. 
+                You can further assume that a div element with the id "image_placeholder" is available in the current scope.
+                Call it from your script according to the the following code documentation:
+                {p5js_description} """
 
         prompt = self.intro(user_message, dialog) + prompt
 
@@ -417,9 +397,6 @@ class GenerationManager:
                 "schema": {
                     "type": "object",
                     "properties": {
-                        "events": {
-                            "type": ["object", "null"],
-                        },
                         "text": {
                             "type": "object"
                         },
@@ -427,7 +404,7 @@ class GenerationManager:
                             "type":"string"
                         },
                     },
-                    "required": ["events","text", "script"],
+                    "required": ["text", "script"],
                     "additionalProperties": False
                     }
                 }
@@ -439,14 +416,38 @@ class GenerationManager:
         output_tokens = response.usage.completion_tokens
         obj_str = response.choices[0].message.content
         obj = json.loads(obj_str)
-        
+
         print("\n\n\n### CREATE TASK ###")
         print("  - Time: ", response_time)
         print("  - Input Tokens: ", input_tokens)
         print("  - Output Tokens: ", output_tokens)
         print("\n",obj)
         print("\n#################################\n\n\n")
+
+
+        # Add additional fields and code
+
+        obj["script"] += """
+            playerApi.receiveEvent('refresh', function() {
+                generateExercise();
+            });
+
+            playerApi.receiveEvent('get_task_details', function() {
+            const taskDetails = playerApi.getTaskDetails();
+            const dynamicDetails = get_task_details(); 
+            playerApi.sendEvent('task_details', {
+                staticInfo: taskDetails.description,
+                dynamicDetails: dynamicDetails
+                });
+            });
+
+            create_exercise()"""
         
+        obj["events"] = {
+            "send": ["task_details"],
+            "receive": ["get_task_details", "refresh"]
+            }
+
         return obj
 
 

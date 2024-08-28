@@ -11,7 +11,7 @@ from django.core.files.storage import FileSystemStorage
 import base64
 from django.conf import settings
 
-template_dir = os.path.join(os.path.dirname(__file__), 'data/templates')
+template_dir = os.path.join(os.path.dirname(__file__), 'data/templates_test')
 js_dir =  os.path.join(os.path.dirname(__file__), 'data/scripts')
 db = DB()
 
@@ -65,14 +65,31 @@ def index(request):
     return render(request, 'index.html', {'structured_tasks': structured_tasks, 'language': language})
 
 def read_template(template_id):
-    template_file = os.path.join(template_dir, template_id)
-    with open(template_file, 'r') as file:
+    template_folder = os.path.join(template_dir, template_id)
+    meta_path = os.path.join(template_folder, "meta.json")
+    script_path = os.path.join(template_folder, "script.js")
+    layout_path = os.path.join(template_folder, "layout.html")
+
+    with open(meta_path, 'r') as file:
         template = json.load(file)
+    with open(script_path, 'r', encoding='utf-8') as file:
+        script = file.read()
+        template["scripts"] = script
+    with open(layout_path, 'r', encoding='utf-8') as file:
+        layout = file.read()
+        template["html"] = layout
     return template
+
+def load_templates(template_dir):
+    templates = {}
+    for template_id in os.listdir(template_dir):
+        template =read_template(template_id)
+        templates[template_id] = template['description']
+    return templates
 
 def read_task_and_template(task_id, subject, language = "english"):
     task = db.get_task_by_id(task_id)
-    template_id = f'{task["template_id"]}.json'
+    template_id = task["template_id"]
     template = read_template(template_id)
     
     return task, template
@@ -115,15 +132,6 @@ def send_message(request):
 
 def generate(request):
     return render(request, 'generate.html')
-
-def load_templates(template_dir):
-    templates = {}
-    for template_file in os.listdir(template_dir):
-        if template_file.endswith('.json'):
-            with open(os.path.join(template_dir, template_file), 'r', encoding='utf-8') as file:
-                template = json.load(file)
-                templates[template_file] = template.get('description', '')
-    return templates
 
 def extract_description(file_content):
     start_identifier = r'\*\*\* Function Description Start \*\*\*'
@@ -201,6 +209,7 @@ def generator_message(request):
 
         # LOAD TEMPLATES 
         templates = load_templates(template_dir)
+        print(templates)
 
         # GET EXTERNAL JS FUNCTIONS
         p5js_functions = get_js_descriptions(js_dir)
@@ -252,8 +261,9 @@ def generator_message(request):
 
             # Generate Task
             print("\n[Create Task...]")
-            response_generate = generation_manager.generate_new(user_message, dialog, template, example_task, subject, p5js_description)
-            
+            response_generate = generation_manager.generate_new(user_message, dialog, template_documentation, subject, p5js_description = None)
+
+
             script = response_generate["script"]
             events = response_generate["events"]
             text = response_generate["text"]
@@ -265,94 +275,6 @@ def generator_message(request):
             task["topic_id"] = 1
             
         
-        
-        # TEST
-        # task_analysis = generation_manager.analyse(user_message,dialog, existing_tasks, templates, p5js_functions, img_path, subject)
-        # task_id = task_analysis["existing_task"]
-        # if task_id:
-        #     task, template = read_task_and_template(task_id, subject, language)
-        #     message = "I found an existing Task that could match your requirements. Do you want to use this task or do you want to make additional changes?"
-        #     if "external_scripts" in task:
-        #         p5js_code = ""
-        #         for script_file in task["external_scripts"]:
-        #             p5js_code += get_js_code(js_dir, script_file)
-
-        # else:
-        #     template_id = task_analysis["template"]
-        #     template = read_template(template_id) 
-        #     example_task = get_example_task(template)
-        #     if example_task != None:
-        #         if "external_scripts" in example_task:
-        #             example_task.pop('external_scripts')
-        #         example_task.pop('topic_id')
-            
-        #     # base generation (no figure, no update)
-        #     prompt = generation_manager.prompt_generate(user_message,dialog,json.dumps(template),example_task, img_path, subject)
-
-        #     # Optional Figure Prompt
-        #     if task_analysis["figure"] and task_analysis["figure_path"] is None:
-        #         p5js_file = task_analysis["existing_p5js"]
-        #         if p5js_file:
-        #             # Use existing p5js function
-        #             function_description = p5js_functions[p5js_file]
-        #             p5js_code = get_js_code(js_dir, p5js_file)
-        #             prompt += generation_manager.prompt_existing_p5js(function_description)
-        #         else:
-        #             # Generate new p5js function
-        #             figure_details = task_analysis["figure_details"]
-        #             prompt += generation_manager.prompt_new_p5js(figure_details)
-        #             bool_generate_p5js = True
-            
-        #     # Optional update existing task
-        #     if current_task:
-        #         prompt += generation_manager.prompt_generate_update(current_task, current_p5js)
-        #         bool_update = True
-
-        #     prompt += generation_manager.prompt_output_format(bool_update, bool_generate_p5js)
-            
-        #     response = generation_manager.generate(prompt)
-   
-        #     message = response["message"]
-
-        #     if bool_update:
-        #         if response["script"] is None:
-        #             script = current_task["script"]
-        #         else:
-        #             script = response["script"]
-                    
-        #         if response["events"]  is None:
-        #             events = current_task["events"]
-        #         else:
-        #             events = response["events"]
-        #         if response["text"]  is None:
-        #             text = current_task["text"]
-        #         else:
-        #             text = response["text"]
-        #     else:
-        #         script = response["script"]
-        #         events = response["events"]
-        #         text = response["text"]
-        #     script.replace("\\\\\\\\", "\\\\")
-        #     script.replace("\\\\\\", "\\\\")
-        #     task = {}
-        #     task["template_id"] = template_id[:-5]
-        #     task["events"] = events
-        #     task["text"] = text
-        #     task["script"] = script
-        #     task["topic_id"] = 1
-        #     if "p5js" in response:
-        #         p5js_code = response["p5js"]
-        #         if p5js_code is None:
-        #             p5js_code = current_p5js
-        #         else:
-        #             p5js_code = p5js_code
-        #     if p5js_file:
-        #         task["external_scripts"] = [p5js_file]
-        #         p5js_code = get_js_code(js_dir, p5js_file)
-
-
-
-
         response = {
             "message":message, 
             "task":task, 

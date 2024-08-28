@@ -1,0 +1,11 @@
+{
+    "template_id": "template_question_answer",
+    "title": "Question Answer Template",
+    "example_task": "task_gradient",
+    "description": "A template with a question, an optional figure placeholder, and a container for an input field. The figure placeholder can be left blank when it is not needed by a task.",
+    "events": {
+      "send": ["evaluationResult"],
+      "receive": ["evaluate"]
+    }
+  }
+  
