@@ -9,7 +9,7 @@
       },
       "formula": {
         "type": "string",
-        "description": "A LaTeX-based string that represents the mathematical formula to be displayed. The formula must contain one or multiple placeholders where the student is required to input their answer.",
+        "description": "A LaTeX-based string that represents the mathematical formula to be displayed. The formula must contain one or multiple placeholders where the student is required to input their answer. You can use any LATEX math symbols like /frac, /sqrt etc. but ALWAYS USE A NORMAL SLASH / and not a backslash \\ in front of the LATEX commands.",
         "required": true
       },
       "answers": {
@@ -19,23 +19,23 @@
       }
     },
     "formula_details": {
-      "description": "The formula parameter must be a LaTeX string containing one or more placeholders. Placeholders are defined using the syntax \\placeholder[name]{}, where 'name' is a unique identifier for that placeholder. The formula can include any LaTeX commands such as \\frac{}{} for fractions or \\sqrt{} for square roots. The 'answers' object must contain keys that correspond to the 'name' identifiers used in the placeholders. Each key's value must be the correct LaTeX-formatted answer expected for that placeholder.",
+      "description": "The formula parameter must be a LaTeX string containing one or more placeholders. Placeholders are defined using the syntax /placeholder[name]{}, where 'name' is a unique identifier for that placeholder. The formula can include any LaTeX commands such as /frac{}{} for fractions or /sqrt{} for square roots. The 'answers' object must contain keys that correspond to the 'name' identifiers used in the placeholders. Each key's value must be the correct LaTeX-formatted answer expected for that placeholder.",
       "examples": [
         {
-          "formula": "4+2=\\placeholder[result]{}",
+          "formula": "4+2=/placeholder[result]{}",
           "answers": {
             "result": "6"
           }
         },
         {
-          "formula": "\\frac{15}{12} = \\frac{\\placeholder[numerator]{}}{\\placeholder[denominator]{}}",
+          "formula": "/frac{15}{12} = /frac{/placeholder[numerator]{}}{/placeholder[denominator]{}}",
           "answers": {
             "numerator": "5",
             "denominator": "4"
           }
         },
         {
-          "formula": "f(x) = \\placeholder[function_term]{}",
+          "formula": "f(x) = /placeholder[function_term]{}",
           "answers": {
             "function_term": "x^2 - 1"
           }

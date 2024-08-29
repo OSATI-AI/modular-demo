@@ -300,18 +300,8 @@
                         <input type="text" id="title-german" class="popup-input" />
                     </div>
                     <label>Description:</label>
-                    <div>
-                        <label for="description-english">English</label>
-                        <textarea id="description-english" class="popup-input"></textarea>
-                    </div>
-                    <div>
-                        <label for="description-german">German</label>
-                        <textarea id="description-german" class="popup-input"></textarea>
-                    </div>
+                    <textarea id="description" class="popup-input"></textarea>
                     <label>Task ID:</label>
-                    <input type="text" id="task-id" class="popup-input" />
-                    <span id="task-id-error" class="error-message" style="display:none;">Task ID already used</span>
-                
                     <div>
                         <label for="level-select">Level</label>
                         <select id="level-select" class="popup-input"></select>
@@ -416,22 +406,8 @@
             // Fill the popup with current task details
             document.getElementById('title-english').value = currentTask.title.english || '';
             document.getElementById('title-german').value = currentTask.title.german || '';
-            document.getElementById('description-english').value = currentTask.description.english || '';
-            document.getElementById('description-german').value = currentTask.description.german || '';
-            document.getElementById('task-id').value = currentTask.task_id || '';
-
-            // Fetch the list of existing task IDs
-            const taskIdsResponse = await fetch(`/task_ids?subject=${getSubject()}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            });
-
-            const taskIdsData = await taskIdsResponse.json();
-            const existingTaskIds = taskIdsData.task_ids;
-
+            document.getElementById('description').value = currentTask.description || '';
+            
             // Fetch the topic lookup data
             const response = await fetch('/topic_lookup', {
                 method: 'POST',
@@ -445,17 +421,9 @@
             // Hide spinner overlay
             document.getElementById('spinner-overlay').style.display = 'none';
 
-            if (response.ok && taskIdsResponse.ok) {
+            if (response.ok) {
                 const data = await response.json();
                 populateDropdowns(data.lookup, data.topic_id);
-                const taskIdInput= document.getElementById('task-id');
-                taskIdInput.addEventListener('input', () => {
-                    check_task_id(taskIdInput.value.trim(), existingTaskIds)
-                });
-
-                // Initial validation
-                check_task_id(taskIdInput.value.trim(), existingTaskIds)
-
                 // Show the popup
                 document.getElementById('popup').style.display = 'block';
             } else {
@@ -463,21 +431,6 @@
             }
         });
 
-
-        function check_task_id(taskIdValue, existingTaskIds){
-            const taskIdInput= document.getElementById('task-id');
-            const taskIdError = document.getElementById('task-id-error');
-            const savePopupBtn = document.getElementById('save-popup-btn');
-            if (existingTaskIds.includes(taskIdValue)) {
-                taskIdInput.classList.add('error');
-                taskIdError.style.display = 'inline';
-                savePopupBtn.disabled = true;
-            } else {
-                taskIdInput.classList.remove('error');
-                taskIdError.style.display = 'none';
-                savePopupBtn.disabled = false;
-            }
-        }
 
         function populateDropdowns(lookup, topicId) {
             const levels = lookup.levels;
@@ -551,9 +504,8 @@
             // Update task object with new values from the popup
             currentTask.title.english = document.getElementById('title-english').value;
             currentTask.title.german = document.getElementById('title-german').value;
-            currentTask.description.english = document.getElementById('description-english').value;
-            currentTask.description.german = document.getElementById('description-german').value;
-            currentTask.task_id = document.getElementById('task-id').value;
+            currentTask.description = document.getElementById('description').value;
+
 
             // Get the selected topic id
             const selectedTopicId = document.getElementById('topic-select').value;
@@ -598,11 +550,9 @@
             }
         });
 
-
-
         document.addEventListener('evaluationResult', (event) => {
             const evaluationResult = event.detail;
-            if (evaluationResult.isCorrect) {
+            if (evaluationResult.result == true) {
                 displaySuccessFeedback();
             } else {
                 displayErrorFeedback();

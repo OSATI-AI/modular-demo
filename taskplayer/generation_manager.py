@@ -102,14 +102,15 @@ class GenerationManager:
             Check the following list of task descriptions and decide, if any of those tasks matches all of the 
             requirements of the task, described by the user. If you found a task that implements all features
             exactly as the user asked for, set "existing_task" to the id of the task you have selected.
-            If no task matches the requirements, set this field to null.
-            The task has to completely match the description of the user, including the type and layout of the task.
-            If the user asks for a addition task as a multiple choice task and there exists a addition task with a text-input
-            field, this is not a match since the layout of the task is different. 
+            If no task matches the requirements, set this field to null. 
             LIST OF EXISTING TASKS:
             {existing_tasks}
         """
         prompt = self.intro(user_message, dialog)+"\n"+prompt
+
+
+        print("\n\n\n EXISTING TASKS: ")
+        print(existing_tasks)
 
         # LLM call 
         start = time.time()
@@ -202,6 +203,8 @@ class GenerationManager:
         prompt = f"""
             Analyse if the task requires to display a figure. Add a field "figure" to your answer and set its value
             to true if a figure is required and to false if no figure is required.
+            A figure is only required if the user explicitly asks for it or if the context of 
+            the dialog makes it clear that the task requires a figure.  
 
             You are only allowed to use p5js for creating figures.
             Below, there is a list of existing p5js functions with their according descriptions. Check each of them
@@ -335,9 +338,9 @@ class GenerationManager:
         
         return obj
 
-    def generate_new(self, user_message, dialog, template_documentation, subject, p5js_description = None):
+    def generate_new(self, user_message, dialog, template_documentation, subject, example, p5js_description = None):
 
-        prompt = f""" 
+        prompt_script = f""" 
         SCHOOL SUBJECT: {subject}
 
         In "script", create a javascript function "create_exercise". This function should 
@@ -356,11 +359,6 @@ class GenerationManager:
         
         Where args is a object containing the function parameters as key value pairs. 
 
-        All texts that appears in the parameters have to be  be referenced within the script
-        by using double curly brackets like {{text_question}}. Every text element has to be 
-        declared in the "text" field and need a unique identifier to reference it in the 
-        javascript code. Add a english and german translation.
-        
         Also create a function "get_task_details" which will return a single string which describes
         the current task. This description should only contain the information that are relevant
         for the current task. So in general it should contain all the randomly generated elements 
@@ -368,22 +366,34 @@ class GenerationManager:
         should be used to give the current context to a LLM which can't see the task and only 
         can work with the information provided by this function.
 
-        All elements that are generated in "create_exercise" and returned in "get_task_details"
-        should be declared globally to be available in both functions.
+        You are NOT allowed to create additional functions or add other commands outside of the functions.
+        The only exception are global variables that need to be available in both functions.
+        But their values have to be set in "create_exercise" to make sure that the value 
+        changes everytime we call create_exercise again.
 
-        FUNCTION DOCUMENTATION:
+        In the script field only give pure javascript code without any html tags. Do not add any comments to the code. 
+         
+        
+        FUNCTION DOCUMENTATION FOR CALLING "createLayout"
         {template_documentation}
         """
-
         if p5js_description:
-            prompt += f"""
+            prompt_script += f"""
                 The task requires to display a figure. You have to use an existing, external function for this.
                 You can assume that the function exists in the current scope. 
                 You can further assume that a div element with the id "image_placeholder" is available in the current scope.
                 Call it from your script according to the the following code documentation:
                 {p5js_description} """
 
-        prompt = self.intro(user_message, dialog) + prompt
+        prompt_text = """All texts that appears in the parameters have to be  be referenced within the script
+        by using double curly brackets like {{text_question}}. Every text element has to be 
+        declared in an object in the "text" field in your json output and need a unique identifier
+        to reference it in the javascript code. Add a english and german translation.
+        """
+
+        prompt_example = f"EXAMPLE OUTPUT:\n{example}"
+ 
+        prompt = self.intro(user_message, dialog) + prompt_script + prompt_text + prompt_example
 
         start = time.time()
         response = self.client.chat.completions.create(
@@ -429,7 +439,7 @@ class GenerationManager:
 
         obj["script"] += """
             playerApi.receiveEvent('refresh', function() {
-                generateExercise();
+                create_exercise();
             });
 
             playerApi.receiveEvent('get_task_details', function() {
@@ -450,463 +460,43 @@ class GenerationManager:
 
         return obj
 
+    def generate_description(self, dialog, template_description, figure_description = None):
 
+        # TODO Add figure description
 
-    def prompt_analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions, img_path, subject):
-        prompt =  f""" You will receive the user's message and the complete previous dialog which includes 
-        the description of the learning task that should be created. Work through the following steps and give your answer in json format.
-
-        PREVIOUS_MESSAGE: {user_message}
-        FULL_DIALOG: {dialog}
-        SCHOOL_SUBJECT: {subject}
-
-        STEP 1:
-        Below you find a list of descriptions of tasks that already exists. Check all of them and decide,
-        if any of those tasks matches all of the requirements of the described task. If you found a task
-        that implements all features of what the user asked for, add the field "existing_task" to your
-        answer and give the id of the task as value. 
-        Example: 
-        "existing_task": "404826057133261008"
-        If you did not find a task that matches the requirements, set the value of "existing_task"
-        to null and continue with STEP 2.
-        IMPORTANT: If the given dialog shows, that you already found an existing task but the user wants to change 
-        something, set "existing_task" to null and proceed as if you did not found an existing task.
-        LIST OF EXISTING TASKS:
-        {existing_tasks}
-
-        STEP 2:
-        Select a template for this type of task that matches the requirements of the user.
-        You are only allowed to pick exactly one template out of the provided lists of templates and their description.
-        Add a field "template" to your answer and give the name of the template as value.
-        Example:
-        "template": "template_multiple_choice.json"
-        LIST OF TEMPLATES:
-        {templates}
-
-        NOTE: 
-        The template "template_default" is a fallback solution. Only if no other template
-        would be possible to solve the requirements, choose thise template. It provides only an empty
-        container which can be filled with arbitrary elements to be able to implement every possible layout. 
-        But only use this one as the last fallback. 
-        """
-
-
-
-        if img_path:
-            prompt += f"""
-            IMAGE:
-            In addition to the message, the user also uploaded an image, which is available 
-            under the relative url: {img_path}
-            Set the fields of the output object as follows:
-            "image": true, 
-            "existing_p5js":null,
-            "figure_details":null,
-            "figure_path": {img_path}
-            """
-
-        else: 
-            prompt += f"""
-            STEP 3:
-            Analyse if the task requires to display a figure. This is only possible if the selected template
-            provide a container to display images/figures. Add a field "figure" to your answer and set its value
-            to true if a figure is required and to false if no figure is required.  
-            You are only allowed to use p5js for creating figures.
-            Below, there is a list of existing p5js functions with their according descriptions. Check each of them
-            and decide if any of them provides a figure that matches the requirements. Add a field "existing_p5js"
-            to your answers. If you found an existing function that you will use, give its filename as value, if not
-            give null as value.
-            Examples:
-            "existing_p5js":"figure.js"
-            "existing_p5js":null
-            Add a field "figure_details" to your answer. If there was an existing p5js function or there is no figure at all set the value of 
-            the field to null. If no existing function matches the requirements, give a 
-            detailed description of how the function should be designed (no code yet) as value for the field. If you describe
-            how a new function should look like, I would like to create functions that are as general as possible
-            in order to reuse them later. So e.g. if the user wants a figure of a linear function, instead of describing
-            a p5js function that only can render linear functions, instead try to describe a function that can plot
-            any kind of mathematical function. 
-            LIST OF EXISTING P5JS FUNCTIONS:
-            {p5js_functions}            
-            IMPORTANT: 
-            Set "figure_path" always to null.
-            """
-        return prompt
-
-    def prompt_generate(self, user_message,dialog, template, example_task, img_path, subject):
-
-        script = example_task["script"]
-        text = example_task["text"]
-        events = example_task["events"]
-
-        prompt = f""" 
-        You will receive the user's message and the complete previous dialog which includes 
-        the description of the learning task that should be created. Work through the following steps and give your answer in json format.
-
-        PREVIOUS_MESSAGE: {user_message}
-        FULL_DIALOG: {dialog}
-        SCHOOL SUBJECT: {subject}
-
-        You will create a object that contains certain descriptive fields as well as javascript code that controlls the elements of the task.
-        The object also defines and handles certain events that manages communication with the application
-        that renders the task. A task is always connected to a certain template. The template defines 
-        the overall layout of the task and creates container elements. The task is only allow to work and
-        generate things inside these elements. Below, you can find the code of the template that you have to use
-        an an EXAMPLE_TASK to show you how to use the framework. Always stick to this framework and only use the fields as shown in the examples. 
-
-        TEMPLATE:
-        {template}
-        
-        EXAMPLE_TASK:
-        "events": {events}
-        "text":{text}
-        "script":"{script}"
-
-        Text elements can be referenced within the script by using double curly brackets:
-        Example: answerLabel.innerHTML = "<b>{{name}}: </b>";
-        Every text element has to be declared in the "text" field and need a unique identifier to reference it in the javascript code.
-        So even if we have a list of text elements that should be displayed somewhere, every text element need an id and has to be
-        referenced with double curly brackets. In general, you can always just refer the name of the variable without the language since 
-        the the correct language will be picked later by a different part of the code. However when a text should always be in a certain language,
-        e.g. in tasks where the student has to translate something, then you have to explicitly reference the text in this language
-        by using VARIABLE.LANGUAGE inside the curly brackets e.g. {{name.english}}.
-        
-        When the subject is "English" this means, it is english as a foreign language. So if the student
-        should translate something or some parts of the exercise are required to be in english do not provide a german translation for these texts but
-        rather use the english text for both german: and english: to ensure that the correct english text is displayed, no matter what language
-        the task is rendered in.
-
-        You are not supposed to handle feedback to the user. The only thing you have to take care is to handle the evaluation
-        event and return an object in the format: 
-        userInput: [INPUT OF THE USER]
-        result: [CORRECT ANSER]
-        isCorrect: [TRUE or FALSE]
-        Please note: The evaluation function ALWAYS have to return a single object with those three parameters. Even if the task
-        is e.g. a multiple choice task with several correct answers, decide based on the logic of the task and the description of the user
-        when a task is either correct or not correct. There is no way to describe partially correct answers or lists of booleans.
-        You have to decide and pick one boolean to set as value. 
-
-        Whenever you generate random numbers in the javascript code, make sure that the variables 
-        are really saved as numbers. Use functions like parseFloat or parseInt to ensure that.
-
-        Try to implement every task in a way, that we can have multiple exercises. Fore example by
-        randomly generating certain numbers or other aspects of the function. When doin this, 
-        always make sure to handle the refresh event correctly and generate new random details for the
-        task. Also make sure to update the correct result to ensure that the evaluate event is handled correctly.
-
-        It is very important that you handle the getTaskDetails event and return a very detailed description of every information connected
-        to the task. This includes all static information that do not change when refreshing the task as well as dynamic information like
-        the reandom generated numbers, or the correct solution. This details are later used to explain an AI tutor the whole situation as exact as possible.
-
-        Whenever a user is required to input numbers or other mathematical terms, use "math-field" from the mathlive library whenever possible. (You can always assume that it is available in the current context)
-        If you are using "math-field" elements and want to display the calculation inside of it, make sure to use "setValue" to
-        really add the equation to the math field. 
-        Example Code:
-
-        n1 = Math.floor(Math.random() * 9 + 1) * 10;
-        n2 = Math.floor(Math.random() * 9 + 1) * 10;
-        answer = n1 * n2;
-        const equation = `${{n1}} \\cdot ${{n2}} = \\placeholder[answer]{{}}`;
-        questionElement.innerText = "{{question}}";
-        const answerField = document.createElement("math-field");
-        answerField.id = "equation";
-        // THIS IS THE IMPORTANT PART:
-        answerField.setValue(equation);
-        
-        answerField.mathVirtualKeyboardPolicy = "manual";
-        answerField.readonly = true;
-        answerElement.append(answerField);
-
-        Always try to implement the user request as accurately as possible, but always stick to
-        format given by the template and the provided examples. 
-
-        If you do not create any p5js code, set "p5js" to null 
-        """
-
-        if img_path:
-            prompt += f"""
-            IMAGE:
-            In addition to the message, the user also uploaded an image, which is available 
-            under the relative url: {img_path}
-            """
-        return prompt
-
-    def prompt_generate_update(self, task, p5js=None):
-        script = task["script"]
-        text = task["text"]
-        events = task["events"]
-        
-        prompt = f"""Below I will provide the object of an existing task. Use this code as a starting point update it
-        to implement the described task. 
-        CURRENT TASK:
-        "events": "{events}"
-        "text":"{text}"
-        "script":"{script}"
-        """
-        if p5js is not None and p5js != "None": 
-            prompt += f"""
-            There is existing p5js code for the figure. If changes to the figure are required, 
-            use this code as a starting point and update it accordingly. If there are changes to 
-            the p5js code, always provide the full updated code (not just the changes). 
-            CURRENT P5JS CODE:
-            {p5js}
-            """
-
-        return prompt 
-
-    def prompt_output_format(self, update = False, p5js = False):
-        prompt = """You always answer in json format and use the following keys:
-        message: "[YOUR MESSAGE]" [Give a short answer to the previous user message in which you explain what you 
-        just did and what changes you have added. But keep it short and simple and do not provide
-        technical details like code. Just stick to what happend to the task layout or behavior.
-        Always answer in the same language as the previous user message was written in.]
-        "events":[YOUR EVENTS OBJECT][Here you will creat a object that contains all outgoing and incoming events that are handled in the script]
-        "text":[YOUR TEXT OBJECT][Here you will specify all texts that are used in the script. Output a object that contains english and german translations for every text element. For text that contains "you", always use the "Du" in the german translation instead of "Sie"]
-        "script":"[YOUR JAVASCRIPT CODE]"[Here you will write your javascript code for the task. NEVER use comments on your javascript code!]
-        """
-        if p5js:
-            prompt += """
-            "p5js":"[YOUR Javascript CODE]"[here you will provide any p5js javascript code 
-            for the figure. Stick to the provided example.]
-            """
-        
-        if update:
-            prompt += """
-            Only give updated code for the fields that had changed. If a field e.g. text or script was not affected by your update,
-            just give null as value. For example:
-            "script": null
-            """
-            if p5js:
-                prompt += """
-                Always try to change as less fields as possible. For example, if the users wants you to change the figure,
-                try to only update the p5js code and leave the script unchanged. Only if the change is not possible without
-                changing the script as well, provide updates to both fields.
-                """
-        return prompt
-    
-    def prompt_existing_p5js(self, function_description):
-        return f"""The task should contain a figure, that should be drawn using p5js. There is an existing
-        p5js function that you have to use. Do not provide any new p5js code but just call the given function
-        from inside your javascript code. You can assume that the function is available in the current context.
-        Here is a detailed description of the p5js function and how to use it:
-        {function_description}
-        """
-    
-    def prompt_new_p5js(self, figure_details):
-        return f"""The task should contain a figure, that should be drawn using p5js. You have to create
-        the p5js code to render the required figure. Here is a detailed description: 
-        {figure_details}
-
-        I would like to create functions that are as general as possible
-        in order to reuse them later. So e.g. if the user wants a figure of a linear function, instead of describing
-        a p5js function that only can render linear functions, instead try to describe a function that can plot
-        any kind of mathematical function. Also make the p5js code as independent from the current task as possible.
-        You can create multiple functions to make the code more structured but make sure, that there is only one
-        function that will be called from the task code. You can assume that the p5js function will later be 
-        available to the task code, but not vice versa, so you are not allowed to use any variables or functions
-        from the task code inside your p5js code.  
-
-        When creating p5js code, stick to the following style, where a new p5js object is created 
-        inside the function and a parent element is given to set as the container p5js should render the figure into.
-        Example: 
-        {EXAMPLE_P5JS}
-
-        As you can see, the javascript code contains a small documentation as a comment on top of the code. Please 
-        also provide such a documentation in the same format as in the example. It is important to use the exact same
-        format including the marker that shows where the documentation starts and ends.
-        /* 
-        *** Function Description Start ***
-        [YOUR]
-        *** Function Description End ***
-        */
-        If your code contains multiple functions
-        you only should provide a documentation for the main function that can be called from other scripts. Provide a description
-        of what the fuctions does as well as a short example code on how to use it.
-        
-        Then you should call your created p5js function from the javascript code inside the task to display it.
-        You can always assume that your p5js code is available in the current scope, so you can just call the function from your
-        task script. Please put no other p5js related code inside the task script but allm of the p5js code should be put into a
-        separate field in the output object as described below. 
-        """
-
-    def prompt_description(self, task,template, dialog):
-        return f"""
-        Below you will find a json object that defines a learning task. This task was created based on the
-        following dialog between a user and an assistant:
-
+        prompt_description = f"""
+        A learning task was generated based on the descriptions of a user. Below you find the
+        dialog between the user and an AI assistant that generated the task:        
         {dialog}
 
-        Here is the task that was created based on this dialog:
+        For this task a predefined, general layout was used. Below you can find a description
+        of the layout:
+        {template_description}
 
-        {task}
+        Your task is to find a title and a description for this task.
 
-        And here is the template that defines the overall layout of the task
-
-        {template}
-
-        Your task is to find a title, a description and a task_id for this task.
-
-        "title": [YOUR TITLE OBJECT][Create a short title for the task. Output an object and add an english and german version]
-        "description": [YOUR DESCRIPTION OBJECT][Create a detailed description for the task.  Output an object and add an english and german version]
-        "task_id": [YOUR TASK ID] [As task id use the english title, put task_ in front of it, make all characters lower case and replace all whitespaces with underscores]
+        "title": Create a short title for the task. Output an object and add an english and german version. It will be the first thing a student will see when opening the task, so make sure it is short, descriptive and informative
+        "description": Create a short description for the task. The description must always be written in english. It should only contain information about what the task is about and important requirements or limitations that are stated in the dialog. 
+        """
         
-        The title will be the first thing a student will see when opening the task, so make sure it is short, descriptive and informative
-
-        The student will never see your generated "description". This description is used to tell an AI Tutor the context
-        of the current task. Since the tutor can not see the screen, your description should be very detailed and contain
-        all information that you have and that are important about the task. What not should be included are the dynamic details
-        so everything which is randomly generated on refresh. But everything wich is static such as the layout, the general task description,
-        colors, input fields etc. should be described here. 
-
-        EXAMPLE: 
-        """ + """"
-        task_id": "task_gradient"
-
-        "title": {
+        prompt_example ="""" 
+        EXAMPLE 1: 
+        title: {
             "english": "Linear Function Gradient Task",
             "german": "Steigung der linearen Funktion"
-        }
-
-        "description": {
-            "english": "This task requires the user to determine the gradient of a linear function. The user will see a graph of the function and an input field to enter the gradient. The student only sees the graph and does not know the function. He should determine the gradient just by looking at the graph",
-            "german": "Diese Aufgabe erfordert, dass der Benutzer die Steigung einer linearen Funktion bestimmt. Der Benutzer sieht einen Graphen der Funktion und ein Eingabefeld, um die Steigung einzugeben. Der Schüler sieht nur den Graphen und kennt die Funktion nicht. Er soll die Steigung allein durch Betrachten des Graphen bestimmen"
-        }"""
-    
-    def prompt_topic_id(self, task_description, topics_lookup):
-        return f"""
-        Below you will receive a description of a learning task followed by a list of 
-        topics. Every topic has a title, as well as a level and key_idea it is assigned to.
-        Your task is to assign the described task to exactly one topic which is the best fit
-        for the task. Your answer should be a json object that contain a single number which is the 
-        id of the topic you choose.
-
-        TASK_DESCRIPTION: 
-        {task_description}
-
-        TOPICS: 
-        {topics_lookup}
+        },
+        description: "This task requires the user to determine the gradient of a linear function. The user will see a graph of the function and an input field to enter the gradient. The student only sees the graph and does not know the function. He should determine the gradient just by looking at the graph"
+        
+        EXAMPLE 2:
+        title: {
+            english: "Addition in 10 Range",
+            german: "Addition im 10er Raum"
+        },
+        description: "In this task, the studen needs to add two numbers together. Both numbers will be between 1 and 9."
         """
 
-    def analyse(self, user_message,dialog, existing_tasks, templates, p5js_functions, img_path, subject):
-        prompt = self.persona()+"\n"+self.prompt_analyse(user_message,dialog, existing_tasks, templates, p5js_functions, img_path, subject)
-        
-        start = time.time()
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            response_format = {
-                "type": "json_schema",
-                "json_schema": {
-                "name": "create_json",
-                "strict": True,
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "existing_task": {
-                            "type": ["string", "null"]
-                        },
-                        "template": {
-                            "type": ["string", "null"]
-                        },
-                        "figure":{
-                            "type": ["string", "null"]
-                        },
-                        "existing_p5js":{
-                            "type": ["string", "null"]
-                        },
-                        "figure_details":{
-                            "type": ["string", "null"]
-                        },
-                        "figure_path":{
-                            "type": ["string", "null"]
-                        },
-                    },
-                    "required": ["existing_task", "template","figure", "existing_p5js","figure_details", "figure_path"],
-                    "additionalProperties": False
-                    }
-                }
-            }
-        )
+        prompt = prompt_description + prompt_example
 
-        # response_time = round(time.time()-start,3)
-
-        # input_token = response.usage.prompt_tokens
-        # output_token = response.usage.completion_tokens
-
-    
-        print("\n\n\n------------------------\n")
-        print("ANALYSIS")
-        print(response)
-        # print("   - Time: ", response_time, "s")
-        # print("   - Input Token: ", input_token)
-        # print("   - Output Token: ", output_token)
-        
-        print("\n------------------------\\n\n\n")
-        # print(response)
-        
-        obj_str = response.choices[0].message.content
-        obj = json.loads(obj_str)
-        
-        print("\n\n",obj, "\n\n")
-        return obj
-
-    def generate(self, prompt, img_base64=None):
-        prompt = self.persona() + "\n" + prompt
-
-        if img_base64:
-            messages=[{"role": "user", "content": [
-            {"type": "text", "text": prompt},
-            {"type": "image_url", "image_url": {
-                "url": f"data:image/png;base64,{img_base64}"}
-            }
-        ]}]
-        else:
-            messages=[{"role": "user", "content": prompt}]
-
-        response = self.client.chat.completions.create(
-        model=self.model,
-        messages=messages, 
-        response_format = {
-                "type": "json_schema",
-                "json_schema": {
-                "name": "create_json",
-                #"strict": True,
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "message":{
-                            "type":"string"
-                        },  
-                        "events": {
-                            "type": ["object", "null"],
-                        },
-                        "text": {
-                            "type": "object"
-                        },
-                        "script":{
-                            "type":"string"
-                        },
-                        "p5js":{
-                            "type":["string","null"]
-                        }
-                    },
-                    "required": ["message", "events","text", "script","p5js"],
-                    "additionalProperties": False
-                    }
-                }
-            }
-        )
-        
-       
-        print(response)
-        obj_str = response.choices[0].message.content
-
-        obj = json.loads(obj_str)
-        return obj
-    
-    def generate_description(self, task, template, dialog):
-        prompt = self.prompt_description(task,template, dialog)
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -924,13 +514,10 @@ class GenerationManager:
                             "type": "object"
                             },
                         "description":{
-                            "type":"object"
-                        },
-                        "task_id":{
                             "type":"string"
-                        }
+                        },
                     },
-                    "required": ["title", "description","task_id"],
+                    "required": ["title", "description"],
                     "additionalProperties": False
                     }
                 }
@@ -943,6 +530,23 @@ class GenerationManager:
         print(response)
 
         return obj
+
+
+
+    def prompt_topic_id(self, task_description, topics_lookup):
+        return f"""
+        Below you will receive a description of a learning task followed by a list of 
+        topics. Every topic has a title, as well as a level and key_idea it is assigned to.
+        Your task is to assign the described task to exactly one topic which is the best fit
+        for the task. Your answer should be a json object that contain a single number which is the 
+        id of the topic you choose.
+
+        TASK_DESCRIPTION: 
+        {task_description}
+
+        TOPICS: 
+        {topics_lookup}
+        """
 
     def find_topic_id(self, task_description, topics_lookup):
         prompt = self.prompt_topic_id(task_description, topics_lookup)

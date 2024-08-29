@@ -23,7 +23,7 @@ def load_tasks(subject):
 def load_task_description(subject):
     tasks = {}
     for task in db.get_tasks_by_subject(subject):
-        tasks[task["fauna_id"]] = task['description']["english"]        
+        tasks[task["fauna_id"]] = task['description']        
     return tasks
 
 def structure_tasks(tasks, topics_lookup, language):
@@ -69,6 +69,8 @@ def read_template(template_id):
     meta_path = os.path.join(template_folder, "meta.json")
     script_path = os.path.join(template_folder, "script.js")
     layout_path = os.path.join(template_folder, "layout.html")
+    doc_path = os.path.join(template_folder, "doc.json")
+    example_path = os.path.join(template_folder, "example.json")
 
     with open(meta_path, 'r') as file:
         template = json.load(file)
@@ -78,6 +80,13 @@ def read_template(template_id):
     with open(layout_path, 'r', encoding='utf-8') as file:
         layout = file.read()
         template["html"] = layout
+    with open(doc_path, 'r') as file:
+        doc = json.load(file)
+        template["documentation"] = doc
+    with open(example_path, 'r') as file:
+        example = json.load(file)
+        template["example"] = example
+    
     return template
 
 def load_templates(template_dir):
@@ -167,18 +176,6 @@ def get_js_code(path, filename):
         content = js_file.read()
     return content
 
-def get_example_task(template,subject="math"):
-    tasks = db.get_all_tasks()
-    example_id = template["example_task"]
-    for task in tasks:
-        if task["task_id"] == example_id:
-            if "external_scripts" in task:
-                task.pop('external_scripts')
-            task.pop('topic_id')
-            return task      
-    print("\n\n\n XXXXXXXX EXAMPLE TASK NOT FOUND XXXXXXXX \n\n\n")
-    return None
-
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
@@ -209,7 +206,6 @@ def generator_message(request):
 
         # LOAD TEMPLATES 
         templates = load_templates(template_dir)
-        print(templates)
 
         # GET EXTERNAL JS FUNCTIONS
         p5js_functions = get_js_descriptions(js_dir)
@@ -237,10 +233,11 @@ def generator_message(request):
             response_template = generation_manager.choose_template(user_message, dialog, templates)
             template_id = response_template["template"]
             template = read_template(template_id) 
-            example_task = get_example_task(template)
             
-            # Check if figure is required
+
+            # TODO SKIP FIGURE FOR NOW.
             p5js_description = None
+            # Check if figure is required
             print("\n[Checking Figure Code]")
             response_p5js = generation_manager.check_p5js(user_message, dialog, p5js_functions)
             if response_p5js["figure"] == True:
@@ -261,14 +258,14 @@ def generator_message(request):
 
             # Generate Task
             print("\n[Create Task...]")
-            response_generate = generation_manager.generate_new(user_message, dialog, template_documentation, subject, p5js_description = None)
+            response_generate = generation_manager.generate_new(user_message, dialog, template["documentation"], subject, template["example"], p5js_description)
 
 
             script = response_generate["script"]
             events = response_generate["events"]
             text = response_generate["text"]
             task = {}
-            task["template_id"] = template_id[:-5]
+            task["template_id"] = template_id
             task["events"] = events
             task["text"] = text
             task["script"] = script
@@ -289,16 +286,17 @@ def generator_message(request):
 def generate_description(request):
     if request.method == "POST":
         # PARSE REQUEST
+        # TODO task is not required anymore
+
         data = json.loads(request.body)
         task = data.get('task', None)   
-        template = data.get('task', None)  
+        template = data.get('template', None)  
         dialog = data.get('dialog', None)
 
-        description_obj = generation_manager.generate_description(json.dumps(task), json.dumps(template), dialog)
+        description_obj = generation_manager.generate_description(dialog, template["description"])
 
         task["title"] = description_obj["title"]
         task["description"] = description_obj["description"]
-        task["task_id"] = description_obj["task_id"]
 
         return JsonResponse({'status': 'success', 'task': task})
     return JsonResponse({'status': 'error', 'task': None})
@@ -310,19 +308,10 @@ def topic_lookup(request):
         task = data.get('task', None)
         subject = data.get('subject', None)
         topics_lookup = get_topics_lookup(subject)
-        topic_id = generation_manager.find_topic_id(task["description"]["english"], json.dumps(topics_lookup))
+        topic_id = generation_manager.find_topic_id(task["description"], json.dumps(topics_lookup))
 
         return JsonResponse({'status': 'success', 'topic_id': topic_id, 'lookup': topics_lookup})
     return JsonResponse({'status': 'error', 'topic_id': None})
-
-@csrf_exempt
-def task_ids(request):
-    if request.method == 'GET':
-        subject = request.GET.get('subject')
-        tasks = load_tasks(subject)
-        task_ids = [t["task_id"] for t in tasks]
-        return JsonResponse({'status': 'success', 'task_ids': task_ids})
-    return JsonResponse({'status': 'error', 'task_ids': None})
 
 @csrf_exempt
 def save_task(request):
@@ -345,7 +334,6 @@ def save_task(request):
 
         return JsonResponse({'status': 'success', 'message': 'Task saved successfully.'})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
-
 
 @csrf_exempt
 def upload_image(request):

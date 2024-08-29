@@ -1,0 +1,9 @@
+{
+    "text": {
+      "text_question": {
+        "english": "What is the sum of the following numbers?",
+        "german": "Was ist die Summe der folgenden Zahlen?"
+      }
+    },
+    "script": "var num1, num2, correctAnswer;\n\nfunction create_exercise() {\n    num1 = Math.floor(Math.random() * 9) + 1;\n    num2 = Math.floor(Math.random() * 9) + 1;\n    \n    correctAnswer = num1 + num2;\n\n    var questionText = '{{text_question}}';\n    var formula = num1 + ' + ' + num2 + ' = /placeholder[result]{}';\n    \n    var answers = {\n        'result': correctAnswer.toString()\n    };\n    \n    var args = {\n        question_text: questionText,\n        formula: formula,\n        answers: answers\n    };\n    playerApi.callTemplateScript('createLayout', args);\n}\n\nfunction get_task_details() {\n    return `The current task requires adding the numbers ${num1} and ${num2}, with the correct answer being ${correctAnswer}.`;\n}"
+}

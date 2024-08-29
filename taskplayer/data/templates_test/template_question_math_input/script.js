@@ -13,6 +13,8 @@ function createLayout(question_text, formula, answers) {
 
     // Formula
     const mf = document.getElementById('formula');
+    formula = formula.replace("/", "\\")
+    console.log("Formula Replaced: ", formula)
     mf.value = formula
 
     // save correct answer
