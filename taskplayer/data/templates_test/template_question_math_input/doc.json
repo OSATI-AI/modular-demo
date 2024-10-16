@@ -9,7 +9,7 @@
       },
       "formula": {
         "type": "string",
-        "description": "A LaTeX-based string that represents the mathematical formula to be displayed. The formula must contain one or multiple placeholders where the student is required to input their answer. You can use any LATEX math symbols like /frac, /sqrt etc. but ALWAYS USE A NORMAL SLASH / and not a backslash \\ in front of the LATEX commands.",
+        "description": "A LaTeX-based string that represents the mathematical formula to be displayed. The formula must contain one or multiple placeholders where the student is required to input their answer. You can use any LATEX math symbols like /frac, /sqrt etc. IMPORTANT: ALWAYS USE A NORMAL SLASH / and not a backslash \\ in front of the LATEX commands!",
         "required": true
       },
       "answers": {
@@ -19,7 +19,7 @@
       }
     },
     "formula_details": {
-      "description": "The formula parameter must be a LaTeX string containing one or more placeholders. Placeholders are defined using the syntax /placeholder[name]{}, where 'name' is a unique identifier for that placeholder. The formula can include any LaTeX commands such as /frac{}{} for fractions or /sqrt{} for square roots. The 'answers' object must contain keys that correspond to the 'name' identifiers used in the placeholders. Each key's value must be the correct LaTeX-formatted answer expected for that placeholder.",
+      "description": "The formula parameter must be a LaTeX string containing one or more placeholders. Placeholders are defined using the syntax /placeholder[name]{}, where 'name' is a unique identifier for that placeholder. The formula can include any LaTeX commands such as /frac{}{} for fractions or /sqrt{} for square roots. The 'answers' object must contain keys that correspond to the 'name' identifiers used in the placeholders. Each key's value must be the correct LaTeX-formatted answer expected for that placeholder. IMPORTANT: ALWAYS USE A NORMAL SLASH / and not a backslash \\ in front of the LATEX commands.",
       "examples": [
         {
           "formula": "4+2=/placeholder[result]{}",
@@ -38,6 +38,12 @@
           "formula": "f(x) = /placeholder[function_term]{}",
           "answers": {
             "function_term": "x^2 - 1"
+          }
+        },
+        {
+          "formula": "3 /times 5",
+          "answers": {
+            "function_term": "15"
           }
         }
       ]

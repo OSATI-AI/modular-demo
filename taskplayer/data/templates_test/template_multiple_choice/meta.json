@@ -1,0 +1,10 @@
+{
+    "template_id": "template_multiple_choice",
+    "title": "Figure Question Multiple Choice Template",
+    "example_task": "task_estimate_addition",
+    "description": "A template with a question, a figure placeholder (optional), and a container for multiple choice elements.",
+    "events": {
+      "send": ["evaluationResult"],
+      "receive": ["evaluate"]
+    }
+}

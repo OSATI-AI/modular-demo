@@ -1,0 +1,47 @@
+{
+    "function_name": "createLayout",
+    "description": "Sets up a question and its possible answers on a webpage, with one correct answer. The function renders the question text and creates clickable elements for each choice, allowing the user to select an answer.",
+    "parameters": {
+      "question_text": {
+        "type": "string",
+        "description": "The text of the question to be displayed to the user.",
+        "required": true,
+        "example": "What is the capital of France?"
+      },
+      "choices": {
+        "type": "array",
+        "description": "A list of HTML objects representing each possible answer. These can include text, images, or other content, and should be self-contained and renderable in any HTML container.",
+        "items": {
+          "type": "HTMLElement",
+          "description": "An HTML element that represents a single choice."
+        },
+        "required": true,
+        "example": [
+          "<div>Paris</div>",
+          "<div>London</div>",
+          "<div>Rome</div>",
+          "<div>Berlin</div>"
+        ]
+      },
+      "correct": {
+        "type": "integer",
+        "description": "The index of the correct choice in the 'choices' array. The index is zero-based, so the first element has an index of 0.",
+        "required": true,
+        "example": 0
+      }
+    },
+    "example_call": {
+      "function": "createLayout",
+      "arguments": {
+        "question_text": "What is the capital of France?",
+        "choices": [
+          "<div>Paris</div>",
+          "<div>London</div>",
+          "<div>Rome</div>",
+          "<div>Berlin</div>"
+        ],
+        "correct": 0
+      }
+    }
+  }
+  

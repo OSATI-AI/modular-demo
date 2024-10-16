@@ -13,7 +13,7 @@ function createLayout(question_text, formula, answers) {
 
     // Formula
     const mf = document.getElementById('formula');
-    formula = formula.replace("/", "\\")
+    formula = formula.replaceAll("/", "\\")
     console.log("Formula Replaced: ", formula)
     mf.value = formula
 
@@ -43,14 +43,6 @@ function createLayout(question_text, formula, answers) {
             allMatch = false;
         }
     }
-
-    console.log({
-      user_input: answers,
-      correct_answer: correctAnswers,
-      result: allMatch
-  })
-
-
     // Return the result as an object
     return {
         user_input: answers,

@@ -80,7 +80,7 @@ EXAMPLE_DESCRIPTION = """
 MODEL = "gpt-4o-2024-08-06"#"anthropic/claude-3.5-sonnet"#"meta-llama/llama-3.1-405b-instruct"#"gpt-4o"#"openai/gpt-4o-mini"#""#"" 
 
 class GenerationManager:
-    def __init__(self, api_key, model_name=MODEL, api_base='https://openrouter.ai/api/v1'):
+    def __init__(self, api_key, model_name=MODEL, api_base='https://er.ai/api/v1'):
         self.client = OpenAI(
             base_url=api_base,
             api_key=api_key)
@@ -530,8 +530,6 @@ class GenerationManager:
         print(response)
 
         return obj
-
-
 
     def prompt_topic_id(self, task_description, topics_lookup):
         return f"""
